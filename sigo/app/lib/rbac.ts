@@ -80,6 +80,17 @@ export function subOptionsFor(): readonly string[] {
   return SUBSECCIONES;
 }
 
+/**
+ * Who can edit Cuadrantes assignments (manual override / mark falta).
+ * The prototype's code only allows `cabo_acceso` (`role === 'cabo_acceso' ||
+ * isAdmin`), but the README is explicit: "Cabo (con acceso), Suboficial,
+ * Jefe de Sección and Jefe de Unidad can edit assignments per service/slot
+ * ...; plain Cabo/Soldado are read-only." Following the README here too,
+ * same as the other role-scope corrections in this file.
+ */
+export const canEditCuadrante = (role: Role) =>
+  role === "cabo_acceso" || role === "suboficial" || isJefeSeccion(role) || isJefeUnidad(role);
+
 export const canGestionarPersonal = (role: Role) => isJefeUnidad(role);
 export const canIncorporarPersonal = isJefeSeccion;
 

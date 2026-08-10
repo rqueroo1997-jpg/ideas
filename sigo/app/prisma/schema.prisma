@@ -54,11 +54,6 @@ enum EstadoPermiso {
   DENEGADO
 }
 
-enum SlotCuadrante {
-  TITULAR
-  SUPLENTE
-}
-
 model Persona {
   id           Int            @id @default(autoincrement())
   nombre       String
@@ -78,14 +73,14 @@ model Persona {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
-  accessGrant         AccessGrant?
-  materialAgregado    Material[]            @relation("MaterialAddedBy")
-  materialResponsable Material[]            @relation("MaterialResponsable")
-  casosReportados     CasoMantenimiento[]   @relation("CasoReportadoPor")
-  historialAcciones   HistorialCaso[]
-  permisos            PermisoRequest[]
-  documentosSubidos   DocumentoPapeleo[]
-  asignaciones        AsignacionCuadrante[]
+  accessGrant          AccessGrant?
+  materialAgregado     Material[]           @relation("MaterialAddedBy")
+  materialResponsable  Material[]           @relation("MaterialResponsable")
+  casosReportados      CasoMantenimiento[]  @relation("CasoReportadoPor")
+  historialAcciones    HistorialCaso[]
+  permisos             PermisoRequest[]
+  documentosSubidos    DocumentoPapeleo[]
+  cuadranteExcepciones CuadranteExcepcion[]
 
   @@index([seccion, sub])
 }
@@ -139,21 +134,21 @@ model Material {
 }
 
 model CasoMantenimiento {
-  id              Int                 @id @default(autoincrement())
-  materialId      Int
-  material        Material            @relation(fields: [materialId], references: [id])
-  stage           EstadoMantenimiento @default(REPORTADO)
-  reportadoPorId  Int
-  reportadoPor    Persona             @relation("CasoReportadoPor", fields: [reportadoPorId], references: [id])
-  fecha           DateTime            @default(now())
-  descripcion     String?
-  orden           String?
-  lugar           String?
-  transportista   String?
-  solucion        String?
-  resultado       String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id             Int                 @id @default(autoincrement())
+  materialId     Int
+  material       Material            @relation(fields: [materialId], references: [id])
+  stage          EstadoMantenimiento @default(REPORTADO)
+  reportadoPorId Int
+  reportadoPor   Persona             @relation("CasoReportadoPor", fields: [reportadoPorId], references: [id])
+  fecha          DateTime            @default(now())
+  descripcion    String?
+  orden          String?
+  lugar          String?
+  transportista  String?
+  solucion       String?
+  resultado      String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   historial HistorialCaso[]
 }
@@ -170,19 +165,19 @@ model HistorialCaso {
 }
 
 model PermisoRequest {
-  id                 Int            @id @default(autoincrement())
+  id                 Int             @id @default(autoincrement())
   personaId          Int
-  persona            Persona        @relation(fields: [personaId], references: [id])
+  persona            Persona         @relation(fields: [personaId], references: [id])
   tipo               String
-  desde              DateTime       @db.Date
-  hasta              DateTime       @db.Date
+  desde              DateTime        @db.Date
+  hasta              DateTime        @db.Date
   dias               Int
-  estado             EstadoPermiso  @default(PENDIENTE_INSTANCIA1)
+  estado             EstadoPermiso   @default(PENDIENTE_INSTANCIA1)
   justificacion      String?
   justificanteFileId Int?
   justificanteFile   ArchivoAdjunto? @relation(fields: [justificanteFileId], references: [id])
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   @@index([personaId])
 }
@@ -197,38 +192,44 @@ model Servicio {
   requiereSealoj Boolean @default(false)
   bloque         Boolean @default(false)
 
-  asignaciones AsignacionCuadrante[]
+  excepciones CuadranteExcepcion[]
 }
 
-model AsignacionCuadrante {
-  id         Int           @id @default(autoincrement())
-  servicioId String
-  servicio   Servicio      @relation(fields: [servicioId], references: [id])
-  fecha      DateTime      @db.Date
-  slot       SlotCuadrante
-  slotIndex  Int           @default(0)
-  personaId  Int?
-  persona    Persona?      @relation(fields: [personaId], references: [id])
-  manual     Boolean       @default(false)
-  marca      String?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+// The rotation itself is computed deterministically (see lib/cuadrantes.ts) from
+// seniority order + a fixed epoch, exactly like the prototype — nothing about a
+// normal day's assignment is stored. Only the two kinds of exception a leader can
+// record are persisted: a manual override (a specific person instead of whoever
+// the rotation would pick) and a falta (that day's titular didn't show, so their
+// imaginaria is promoted). Both are keyed per calendar day, even for the
+// suboficial_cuartel block service — matching the prototype's own per-day keys
+// rather than one entry per block.
+model CuadranteExcepcion {
+  id                Int      @id @default(autoincrement())
+  servicioId        String
+  servicio          Servicio @relation(fields: [servicioId], references: [id])
+  fecha             DateTime @db.Date
+  slotIndex         Int
+  overridePersonaId Int?
+  overridePersona   Persona? @relation(fields: [overridePersonaId], references: [id])
+  falta             Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  @@unique([servicioId, fecha, slot, slotIndex])
+  @@unique([servicioId, fecha, slotIndex])
 }
 
 model DocumentoPapeleo {
-  id               Int             @id @default(autoincrement())
-  titulo           String
-  categoria        String
-  seccionOrigen    String
-  normativa        String?
-  fecha            DateTime        @default(now())
-  tiposRelacionados String[]       @default([])
-  fileId           Int?
-  file             ArchivoAdjunto? @relation(fields: [fileId], references: [id])
-  extractedText    String?
-  subidoPorId      Int?
-  subidoPor        Persona?        @relation(fields: [subidoPorId], references: [id])
-  createdAt        DateTime        @default(now())
+  id                Int             @id @default(autoincrement())
+  titulo            String
+  categoria         String
+  seccionOrigen     String
+  normativa         String?
+  fecha             DateTime        @default(now())
+  tiposRelacionados String[]        @default([])
+  fileId            Int?
+  file              ArchivoAdjunto? @relation(fields: [fileId], references: [id])
+  extractedText     String?
+  subidoPorId       Int?
+  subidoPor         Persona?        @relation(fields: [subidoPorId], references: [id])
+  createdAt         DateTime        @default(now())
 }
