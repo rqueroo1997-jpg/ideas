@@ -112,10 +112,15 @@ Per your answer, this is built for real rather than left mocked:
 
 Each phase ends in a working, deployable increment — not a stub.
 
-- **Phase 0 — Foundation.** Next.js scaffold, Prisma schema + migrations for the full model
-  in §3, design tokens ported into `globals.css`, auth (login, "primer acceso" first-access
-  flow, session, role-view switch), layout shell (sidebar/tab-bar nav, breadcrumb,
-  role-based nav filtering), deactivated-account login block (Open Item #2 from the README).
+- **Phase 0 — Foundation. ✅ Done** (see `app/`). Next.js 16 + TypeScript scaffold, Prisma 7
+  schema + migrations for the full model in §3 (driver-adapter setup, since Prisma 7 requires
+  one), design tokens ported verbatim into `app/globals.css` with self-hosted Barlow/Barlow
+  Condensed via `next/font`, auth (login, "primer acceso" first-access flow, iron-session,
+  role-view switch), layout shell (sidebar/tab-bar nav, breadcrumb, role switcher), and a seed
+  script porting the prototype's placeholder roster/material/etc. Deactivated-account login
+  block (README open item #2) is enforced on every request via `getCurrentPersona()`, not just
+  at login. Verified with a full browser run: primer-acceso → login → role-scoped breadcrumb →
+  nav → logout → wrong-password rejection, plus a clean `next build`.
 - **Phase 1 — Material + Mantenimiento.** Dashboard stats/donut, add/edit/delete-own-pending
   material, Suboficial validation, the 4-stage repair ticket pipeline + history log.
 - **Phase 2 — Personal + Permisos.** Roster CRUD, incorporate-pending-personnel flow,
@@ -134,15 +139,19 @@ Proceeding phase-by-phase with a checkpoint after each, per your "full build, in
 answer — I'll report back at the end of each phase rather than going silent for the whole
 build.
 
-## 8. Open items before Phase 0 can start
+## 8. Open items
 
-1. Confirm the stack in §2 (or redirect it).
-2. `ANTHROPIC_API_KEY` source for §6 — new key or existing account.
-3. File storage target for uploads (§2) — S3-compatible bucket credentials, or local disk
-   acceptable for now.
-4. Hosting target, if known yet (affects nothing about Phase 0–4 code, only deploy config).
-5. Real personnel roster to seed with, or is the prototype's `SEED_PERSONAL` fine as
-   placeholder data until real data is supplied.
+Resolved for Phase 0 with defaults, since you said "ok" to proceed: stack as proposed in §2,
+local disk for file storage until Phase 2 needs it for real, prototype `SEED_PERSONAL` kept as
+placeholder roster. Still open:
+
+1. **`DATABASE_URL` for anywhere other than this dev sandbox.** Phase 0 runs against a local
+   Postgres 16 instance inside this container (not committed, not portable) — a real
+   deployment needs its own Postgres and connection string.
+2. **`ANTHROPIC_API_KEY`** for the real AI search built in Phase 4 (§6) — new key or existing
+   account.
+3. Hosting target, if known yet (affects nothing about Phase 0–4 code, only deploy config).
+4. Real personnel roster, whenever it's ready to replace the placeholder seed data.
 
 ## 9. Files in this folder
 

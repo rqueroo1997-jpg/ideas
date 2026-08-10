@@ -1,0 +1,236 @@
+// SIGO — Plataforma de Operatividad (Batallón CG IX)
+// See sigo/PLAN.md section 3 for the model rationale.
+//
+// Enum values are ASCII codes; the exact Spanish display labels (which may
+// contain spaces/accents, e.g. "Baja médica") live in app/lib/catalog.ts so
+// the prototype's verbatim copy is preserved without fighting Postgres enum
+// naming rules.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  admin
+  jefe_unidad
+  jefe_seccion
+  suboficial
+  cabo_acceso
+  cabo
+  soldado
+}
+
+enum EstadoPersonal {
+  ACTIVO
+  CURSO_VACACIONES
+  REBAJADO
+  BAJA_MEDICA
+}
+
+enum EstadoMaterial {
+  OPERATIVO
+  CONDICIONAL
+  INOPERATIVO
+  EN_ESCALON
+  BAJA
+}
+
+enum EstadoMantenimiento {
+  REPORTADO
+  EN_ESCALON
+  EN_REPARACION
+  CERRADO
+}
+
+enum EstadoPermiso {
+  PENDIENTE_INSTANCIA1
+  PENDIENTE_UNIDAD
+  APROBADO
+  DENEGADO
+}
+
+enum SlotCuadrante {
+  TITULAR
+  SUPLENTE
+}
+
+model Persona {
+  id           Int            @id @default(autoincrement())
+  nombre       String
+  rango        String
+  antiguedad   Int
+  viveSealoj   Boolean        @default(false)
+  seccion      String
+  sub          String?
+  estado       EstadoPersonal @default(ACTIVO)
+  desde        DateTime?
+  hasta        DateTime?
+  homeRole     Role
+  usuario      String?        @unique
+  passwordHash String?
+  cuentaCreada Boolean        @default(false)
+  activo       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  accessGrant         AccessGrant?
+  materialAgregado    Material[]            @relation("MaterialAddedBy")
+  materialResponsable Material[]            @relation("MaterialResponsable")
+  casosReportados     CasoMantenimiento[]   @relation("CasoReportadoPor")
+  casosTransportista  CasoMantenimiento[]   @relation("CasoTransportista")
+  historialAcciones   HistorialCaso[]
+  permisos            PermisoRequest[]
+  documentosSubidos   DocumentoPapeleo[]
+  asignaciones        AsignacionCuadrante[]
+
+  @@index([seccion, sub])
+}
+
+// jefe_unidad/admin grants another persona a temporary view as a different role.
+model AccessGrant {
+  id          Int      @id @default(autoincrement())
+  personaId   Int      @unique
+  persona     Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  grantedRole Role
+  grantedById Int?
+  createdAt   DateTime @default(now())
+}
+
+model ArchivoAdjunto {
+  id         Int      @id @default(autoincrement())
+  nombre     String
+  mimeType   String
+  size       Int
+  storageKey String
+  createdAt  DateTime @default(now())
+
+  permisos   PermisoRequest[]
+  documentos DocumentoPapeleo[]
+}
+
+model Material {
+  id                  Int            @id @default(autoincrement())
+  codigo              String         @unique
+  nombre              String
+  tipo                String
+  numeroSerie         String?
+  seccion             String
+  sub                 String?
+  estado              EstadoMaterial @default(OPERATIVO)
+  responsableId       Int?
+  responsable         Persona?       @relation("MaterialResponsable", fields: [responsableId], references: [id])
+  prestado            Boolean        @default(false)
+  prestadoA           String?
+  ubicacion           String?
+  enRevision          Boolean        @default(false)
+  pendienteValidacion Boolean        @default(false)
+  addedById           Int?
+  addedBy             Persona?       @relation("MaterialAddedBy", fields: [addedById], references: [id])
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  casos CasoMantenimiento[]
+
+  @@index([seccion, sub])
+}
+
+model CasoMantenimiento {
+  id              Int                 @id @default(autoincrement())
+  materialId      Int
+  material        Material            @relation(fields: [materialId], references: [id])
+  stage           EstadoMantenimiento @default(REPORTADO)
+  reportadoPorId  Int
+  reportadoPor    Persona             @relation("CasoReportadoPor", fields: [reportadoPorId], references: [id])
+  fecha           DateTime            @default(now())
+  orden           String?
+  lugar           String?
+  transportistaId Int?
+  transportista   Persona?            @relation("CasoTransportista", fields: [transportistaId], references: [id])
+  solucion        String?
+  resultado       String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  historial HistorialCaso[]
+}
+
+// Append-only action log per repair ticket (validar / descartar / transportar / cerrar...).
+model HistorialCaso {
+  id      Int               @id @default(autoincrement())
+  casoId  Int
+  caso    CasoMantenimiento @relation(fields: [casoId], references: [id], onDelete: Cascade)
+  fecha   DateTime          @default(now())
+  accion  String
+  actorId Int
+  actor   Persona           @relation(fields: [actorId], references: [id])
+}
+
+model PermisoRequest {
+  id                 Int            @id @default(autoincrement())
+  personaId          Int
+  persona            Persona        @relation(fields: [personaId], references: [id])
+  tipo               String
+  desde              DateTime       @db.Date
+  hasta              DateTime       @db.Date
+  dias               Int
+  estado             EstadoPermiso  @default(PENDIENTE_INSTANCIA1)
+  justificacion      String?
+  justificanteFileId Int?
+  justificanteFile   ArchivoAdjunto? @relation(fields: [justificanteFileId], references: [id])
+  cancelable         Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([personaId])
+}
+
+// Fixed catalog of duty-roster services (SERVICIOS in the prototype). Seeded, not user-created.
+model Servicio {
+  id             String  @id
+  label          String
+  rango          String
+  titulares      Int
+  suplentes      Int
+  requiereSealoj Boolean @default(false)
+  bloque         Boolean @default(false)
+
+  asignaciones AsignacionCuadrante[]
+}
+
+model AsignacionCuadrante {
+  id         Int           @id @default(autoincrement())
+  servicioId String
+  servicio   Servicio      @relation(fields: [servicioId], references: [id])
+  fecha      DateTime      @db.Date
+  slot       SlotCuadrante
+  slotIndex  Int           @default(0)
+  personaId  Int?
+  persona    Persona?      @relation(fields: [personaId], references: [id])
+  manual     Boolean       @default(false)
+  marca      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([servicioId, fecha, slot, slotIndex])
+}
+
+model DocumentoPapeleo {
+  id               Int             @id @default(autoincrement())
+  titulo           String
+  categoria        String
+  seccionOrigen    String
+  normativa        String?
+  fecha            DateTime        @default(now())
+  tiposRelacionados String[]       @default([])
+  fileId           Int?
+  file             ArchivoAdjunto? @relation(fields: [fileId], references: [id])
+  extractedText    String?
+  subidoPorId      Int?
+  subidoPor        Persona?        @relation(fields: [subidoPorId], references: [id])
+  createdAt        DateTime        @default(now())
+}
