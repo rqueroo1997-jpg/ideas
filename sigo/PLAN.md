@@ -129,9 +129,14 @@ Each phase ends in a working, deployable increment — not a stub.
   on maintenance tickets for any non-soldado role) — see `lib/rbac.ts` for the reasoning.
   Verified across three roles in a browser (soldado add + report avería, suboficial validate
   and drive a ticket through all four stages, confirmed section-scoping) plus a clean build.
-- **Phase 2 — Personal + Permisos.** Roster CRUD, incorporate-pending-personnel flow,
-  account activation toggle; leave calendar, two-stage approval, extraordinario cap,
-  justificante upload.
+- **Phase 2 — Personal + Permisos. ✅ Done** (see `app/app/(app)/personal/`, `.../permisos/`).
+  Roster with jefe_unidad-only credential renewal and account activation toggle, jefe_seccion's
+  incorporate-pending-personnel panel; year calendar with day selection and contiguous-block
+  splitting, two-stage approval, extraordinario's 10-day cap, justificante upload served via an
+  authenticated route handler rather than the public folder. Same README-vs-prototype scope fix
+  as Phase 1 applied here too (see `lib/rbac.ts`'s `permisoScopeFor` — dropped a prototype
+  branch that let any staff-section role see every permiso unit-wide). Verified across three
+  roles including a full two-stage approval traced on one specific request, plus a clean build.
 - **Phase 3 — Cuadrantes.** The rotation engine from §4, manual override editing, exemption
   rules, "excluidos esta semana" panel.
 - **Phase 4 — Papeleo + real AI search.** Document upload/extraction, the Claude-backed
