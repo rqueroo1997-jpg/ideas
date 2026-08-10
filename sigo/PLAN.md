@@ -137,8 +137,15 @@ Each phase ends in a working, deployable increment — not a stub.
   as Phase 1 applied here too (see `lib/rbac.ts`'s `permisoScopeFor` — dropped a prototype
   branch that let any staff-section role see every permiso unit-wide). Verified across three
   roles including a full two-stage approval traced on one specific request, plus a clean build.
-- **Phase 3 — Cuadrantes.** The rotation engine from §4, manual override editing, exemption
-  rules, "excluidos esta semana" panel.
+- **Phase 3 — Cuadrantes. ✅ Done** (see `lib/cuadrantes.ts`, `app/app/(app)/cuadrantes/`).
+  The seniority rotation formula, block scheduling for suboficial_cuartel, falta → imaginaria
+  promotion, manual overrides. Redesigned the schema from Phase 0's `AsignacionCuadrante`
+  (assumed one row per day) to `CuadranteExcepcion` (exceptions only) once the actual — fully
+  computed, not stored — algorithm was understood. Same README-vs-prototype-code pattern as
+  Phases 1-2 turned up two more real fixes: `canEditCuadrante` now matches the README's five
+  editing roles instead of the prototype's `cabo_acceso`-only check, and the summer exemption
+  now actually checks the 15 Jun-15 Sep window. Verified in a browser across roles plus a clean
+  build.
 - **Phase 4 — Papeleo + real AI search.** Document upload/extraction, the Claude-backed
   search from §6, access grants UI (jefe_unidad → other roles), notifications count backed
   by a real query instead of a derived stub.
