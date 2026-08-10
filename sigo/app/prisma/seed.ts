@@ -224,7 +224,7 @@ async function main() {
         fecha: parseDate(c.fecha)!,
         orden: c.orden,
         lugar: c.lugar,
-        transportistaId: c.transportista ? resolvePersonaId(c.transportista) : undefined,
+        transportista: c.transportista,
       },
     });
   }

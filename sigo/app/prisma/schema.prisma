@@ -82,7 +82,6 @@ model Persona {
   materialAgregado    Material[]            @relation("MaterialAddedBy")
   materialResponsable Material[]            @relation("MaterialResponsable")
   casosReportados     CasoMantenimiento[]   @relation("CasoReportadoPor")
-  casosTransportista  CasoMantenimiento[]   @relation("CasoTransportista")
   historialAcciones   HistorialCaso[]
   permisos            PermisoRequest[]
   documentosSubidos   DocumentoPapeleo[]
@@ -147,10 +146,10 @@ model CasoMantenimiento {
   reportadoPorId  Int
   reportadoPor    Persona             @relation("CasoReportadoPor", fields: [reportadoPorId], references: [id])
   fecha           DateTime            @default(now())
+  descripcion     String?
   orden           String?
   lugar           String?
-  transportistaId Int?
-  transportista   Persona?            @relation("CasoTransportista", fields: [transportistaId], references: [id])
+  transportista   String?
   solucion        String?
   resultado       String?
   createdAt       DateTime            @default(now())

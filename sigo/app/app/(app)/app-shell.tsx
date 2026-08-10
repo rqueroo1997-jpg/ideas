@@ -17,14 +17,12 @@ export function AppShell({
   personaNombre,
   activeRole,
   roleOptions,
-  breadcrumb,
   notificacionesCount,
 }: {
   children: ReactNode;
   personaNombre: string;
   activeRole: Role;
   roleOptions: RoleOption[];
-  breadcrumb: string;
   notificacionesCount: number;
 }) {
   const pathname = usePathname();
@@ -100,7 +98,6 @@ export function AppShell({
         </div>
 
         <div className="op-content" style={{ flex: 1, minWidth: 0, padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          <div className="text-muted" style={{ fontSize: 13 }}>{breadcrumb}</div>
           {children}
         </div>
       </div>
