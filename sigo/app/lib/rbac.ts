@@ -94,6 +94,16 @@ export const canEditCuadrante = (role: Role) =>
 export const canGestionarPersonal = (role: Role) => isJefeUnidad(role);
 export const canIncorporarPersonal = isJefeSeccion;
 
+/**
+ * Who can upload Papeleo documents, ported from the prototype's
+ * `canSubirDocumento` (~L1852): admin, or anyone whose actual section is one
+ * of the staff sections (S1-S4) — this checks the persona's real section,
+ * not the active role-view, matching the prototype's `loggedPerson.seccion`.
+ */
+const STAFF_SECCIONES = ["S1", "S2", "S3", "S4"];
+export const canSubirDocumento = (persona: PersonaWithGrant, activeRole: Role) =>
+  isAdmin(activeRole) || STAFF_SECCIONES.includes(persona.seccion);
+
 /** Approves pendiente_instancia1 → pendiente_unidad. */
 export const canActInstancia1 = (role: Role) => role === "suboficial" || isJefeSeccion(role) || isAdmin(role);
 /** Approves pendiente_unidad → aprobado. */

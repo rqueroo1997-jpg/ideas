@@ -18,18 +18,22 @@ export async function GET(
   const archivo = await prisma.archivoAdjunto.findUnique({ where: { id: fileId } });
   if (!archivo) return new Response("No encontrado.", { status: 404 });
 
-  const permiso = await prisma.permisoRequest.findFirst({
-    where: { justificanteFileId: fileId },
-    include: { persona: true },
-  });
-  if (!permiso) return new Response("No encontrado.", { status: 404 });
+  const documento = await prisma.documentoPapeleo.findFirst({ where: { fileId } });
+  if (!documento) {
+    const permiso = await prisma.permisoRequest.findFirst({
+      where: { justificanteFileId: fileId },
+      include: { persona: true },
+    });
+    if (!permiso) return new Response("No encontrado.", { status: 404 });
 
-  const scope = permisoScopeFor(persona, activeRole);
-  const authorized =
-    scope.mode === "all" ||
-    (scope.mode === "seccion" && permiso.persona.seccion === scope.seccion) ||
-    (scope.mode === "own" && permiso.personaId === scope.personaId);
-  if (!authorized) return new Response("No autorizado.", { status: 403 });
+    const scope = permisoScopeFor(persona, activeRole);
+    const authorized =
+      scope.mode === "all" ||
+      (scope.mode === "seccion" && permiso.persona.seccion === scope.seccion) ||
+      (scope.mode === "own" && permiso.personaId === scope.personaId);
+    if (!authorized) return new Response("No autorizado.", { status: 403 });
+  }
+  // Papeleo documents have no further scoping — every logged-in persona can view the repository (README §6).
 
   const buffer = await readUpload(archivo.storageKey);
   return new Response(new Uint8Array(buffer), {
