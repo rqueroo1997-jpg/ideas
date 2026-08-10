@@ -1,0 +1,151 @@
+# SIGO — Plataforma de Operatividad (Batallón CG IX)
+Architecture & build plan, derived from the design handoff in `design-handoff/`.
+
+Status: **plan for review — no application code written yet.** Nothing below is built; this
+is the proposal to sign off on before Phase 0 starts.
+
+## 1. What this is
+
+SIGO is an internal web app for a military unit to manage material inventory, maintenance
+tickets, personnel, leave requests, duty rosters, and a document repository with AI-assisted
+search — all gated by a 7-level role hierarchy that scopes data by section/subsection. The
+source is a static HTML prototype (`design-handoff/Plataforma de Operatividad.dc.html`,
+1925 lines) with real interaction logic and seed data but no backend, auth, or persistence.
+Full behavioral spec: `design-handoff/README.md`.
+
+The repo is currently empty, so this plan also picks the stack.
+
+## 2. Recommended stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| Framework | **Next.js 14 (App Router) + TypeScript** | One deployable for UI + API routes; avoids running/CORS-ing a separate backend for a single-team internal app. Server Components fit the RBAC-scoped-data model well (filter server-side, never ship other sections' data to the client). |
+| Database | **Postgres**, accessed via **Prisma** | Relational fits this domain exactly (personas, material, casos, permisos, asignaciones all have real foreign keys and state machines). Prisma migrations give an auditable schema history, important for a system of record. |
+| Auth | **Custom credentials auth** (username/password, bcrypt, signed session cookie via `iron-session` or NextAuth Credentials provider) | The spec's login model (persona picks their own name once, sets username/password, no self-serve reset) doesn't map to OAuth/passwordless providers — needs custom logic anyway, so keep it lightweight rather than fighting a provider's assumptions. |
+| Styling | **CSS custom properties ported 1:1 from the Industry DS** (`design-handoff/design-handoff/_ds/.../styles.css`) + Tailwind for layout utilities | README is explicit: colors/type/spacing are final values, not placeholders. Port the tokens verbatim instead of re-deriving them from a component library. |
+| File storage | **Postgres-adjacent object storage** (S3-compatible bucket, or local disk volume if self-hosted with no cloud budget) | Justificantes (leave docs) and Papeleo documents (PDF/Word) are binary uploads that shouldn't live in the DB as blobs at this scale. |
+| AI search (Papeleo) | **Anthropic Claude API** (`claude-sonnet-5`), text extraction via `pdf-parse` (PDF) / `mammoth` (docx) | Detailed in §6 — user confirmed this should be real, not mocked, in this pass. |
+| Hosting | Deferred — works on any Node host (Vercel, Fly, a VM) once containerized | Not blocking the plan; revisit once Phase 0 needs a deploy target. |
+
+This is a recommendation, not a locked decision — flag now if a different stack is preferred
+(e.g. a Python/Django backend, or Supabase instead of self-managed Postgres) since it's cheap
+to change before Phase 0 and expensive after.
+
+## 3. Data model (Prisma-shape sketch)
+
+```
+Persona        id, nombre, rango, antiguedad, seccion, sub, estado(Activo/CursoVacaciones/Rebajado/BajaMedica),
+               homeRole, usuario, passwordHash, cuentaCreada, activo, viveSealoj, desde, hasta
+AccessGrant    personaId → grantedRole   (unique per persona; jefe_unidad/admin manage)
+Material       id, codigo, nombre, tipo(Oficial/Fungible), numeroSerie?, seccion, sub?,
+               estado(Operativo/Condicional/Inoperativo/EnEscalon/Baja), responsableId,
+               prestado, prestadoA?, ubicacion?, pendienteValidacion, addedById
+CasoMantenimiento  id, materialId, stage(reportado/en_escalon/en_reparacion/cerrado),
+               reportadoPorId, fecha, orden?, lugar?, transportistaId?, solucion?, resultado?
+HistorialCaso  id, casoId, fecha, accion, actorId      -- append-only log per ticket
+PermisoRequest id, personaId, tipo(enum TIPOS_CALENDARIO), desde, hasta, dias,
+               estado(pendiente_instancia1/pendiente_unidad/aprobado/denegado),
+               justificacion?, justificanteFileId?, cancelable
+Servicio       id (fixed catalog, see §4), label, rango, titulares, suplentes, requiereSealoj, bloque
+AsignacionCuadrante  id, servicioId, fecha_or_bloque, slot(titular/suplente),
+               personaId, manual(bool), marca(S/I/F/S*)
+DocumentoPapeleo  id, titulo, categoria, seccionOrigen, normativa, fecha, tipo, fileId,
+               extractedText   -- cached extraction for AI search
+Session        standard cookie-session table if not using JWT-only
+```
+
+Enums (`Seccion`, `Subseccion`, `TipoPapeleo`, `TipoCalendario`, `Role`) are ported verbatim
+from the prototype's `SECCIONES`, `SUBSECCIONES`, `TIPOS_PAPELEO`, `TIPOS_CALENDARIO`,
+`ROLE_HOME` constants (lines 1017–1041 of the `.dc.html`) so labels match the Spanish copy
+exactly, per the "keep copy verbatim" fidelity note.
+
+## 4. The two pieces of real business logic to port carefully
+
+These aren't just CRUD — they're the parts of the prototype worth reading line-by-line
+before implementing, since the rules are specific and easy to get subtly wrong:
+
+- **Cuadrantes rotation** (`.dc.html` ~L1151–1211): seniority-ordered rotation across 7 fixed
+  `SERVICIOS`, each with its own titular/suplente headcount and minimum rank; `Suboficial de
+  cuartel` runs in Mon–Wed/Wed–Fri/Fri–Mon blocks instead of single days
+  (`blockIndexOf`, L1187–1198); summer "Permiso Oficial" (15 Jun–15 Sep, 5+ consecutive
+  business days) exempts from rotation (`exentoPorPermisoVerano`, L1199–1202); a missed
+  titular is backfilled by that service's imaginaria (suplente).
+- **Permisos workflow**: two-stage approval (`pendiente_instancia1` → `pendiente_unidad` →
+  `aprobado`/`denegado`), `Permiso extraordinario` capped at 10 days/year with mandatory
+  justification, cancel-only-while-pending, calendar cells computed from `FESTIVOS` +
+  weekends + existing approved ranges (`buildYearCalendar`, L1043–1066).
+
+Everything else (Material, Mantenimiento's 4-stage pipeline, Personal, Papeleo listing) is
+straightforward state-machine CRUD scoped by role/section.
+
+## 5. RBAC approach
+
+Role hierarchy and per-screen visibility rules are fully specified in the README (§"Roles &
+Access Model", §"Screens / Views") and in the prototype's `canAgregarMaterial`,
+`isJefeUnidad`, `isJefeSeccion`, etc. helpers. Plan: a single `can(action, resource, actor)`
+authorization module (not scattered `if (role === ...)` checks across components) so the
+~15 distinct permission rules stay in one auditable place and every API route + Server
+Component calls through it. Section/subsection scoping is enforced server-side as a query
+filter, not a client-side hide — a `soldado` must never receive other sections' rows over
+the wire.
+
+## 6. AI search in Papeleo — real implementation
+
+Per your answer, this is built for real rather than left mocked:
+
+1. On document upload, extract text server-side (`pdf-parse` for PDF, `mammoth` for
+   `.docx`/`.odt`) and cache it on `DocumentoPapeleo.extractedText`.
+2. On a search query, send the extracted text of matching/candidate documents + the user's
+   question to the Claude API and return a grounded answer citing the source document —
+   same "don't invent, say when unsure" instruction the prototype's
+   `PAPELEO_SYSTEM_PROMPT` (L1076–1079) already specifies for the adjacent leave-request
+   review assistant; reuse that same guardrail pattern for document Q&A.
+3. Needs `ANTHROPIC_API_KEY` configured as an env var on whatever host runs this — flag if
+   there's a preferred existing account/key to use versus provisioning a new one.
+4. Scope check for later: full corpus semantic search (embeddings + vector index) vs.
+   simpler keyword-prefilter + full-text-to-Claude (cheaper, likely sufficient at the
+   expected document-count scale for one battalion). Recommend starting with the simpler
+   approach and only adding embeddings if the document count grows past what fits in one
+   prompt.
+
+## 7. Build phases
+
+Each phase ends in a working, deployable increment — not a stub.
+
+- **Phase 0 — Foundation.** Next.js scaffold, Prisma schema + migrations for the full model
+  in §3, design tokens ported into `globals.css`, auth (login, "primer acceso" first-access
+  flow, session, role-view switch), layout shell (sidebar/tab-bar nav, breadcrumb,
+  role-based nav filtering), deactivated-account login block (Open Item #2 from the README).
+- **Phase 1 — Material + Mantenimiento.** Dashboard stats/donut, add/edit/delete-own-pending
+  material, Suboficial validation, the 4-stage repair ticket pipeline + history log.
+- **Phase 2 — Personal + Permisos.** Roster CRUD, incorporate-pending-personnel flow,
+  account activation toggle; leave calendar, two-stage approval, extraordinario cap,
+  justificante upload.
+- **Phase 3 — Cuadrantes.** The rotation engine from §4, manual override editing, exemption
+  rules, "excluidos esta semana" panel.
+- **Phase 4 — Papeleo + real AI search.** Document upload/extraction, the Claude-backed
+  search from §6, access grants UI (jefe_unidad → other roles), notifications count backed
+  by a real query instead of a derived stub.
+- **Phase 5 — Hardening.** Responsive pass against the 880px breakpoint, role-matrix test
+  pass (every screen × every role, checking the README's visibility table), seed/import path
+  for real personnel data to replace the prototype's seed data.
+
+Proceeding phase-by-phase with a checkpoint after each, per your "full build, in phases"
+answer — I'll report back at the end of each phase rather than going silent for the whole
+build.
+
+## 8. Open items before Phase 0 can start
+
+1. Confirm the stack in §2 (or redirect it).
+2. `ANTHROPIC_API_KEY` source for §6 — new key or existing account.
+3. File storage target for uploads (§2) — S3-compatible bucket credentials, or local disk
+   acceptable for now.
+4. Hosting target, if known yet (affects nothing about Phase 0–4 code, only deploy config).
+5. Real personnel roster to seed with, or is the prototype's `SEED_PERSONAL` fine as
+   placeholder data until real data is supplied.
+
+## 9. Files in this folder
+
+- `design-handoff/` — the uploaded prototype, copied here verbatim so it's version-controlled
+  and every phase can reference exact copy/fields/logic without needing a re-upload.
+- `PLAN.md` — this document.

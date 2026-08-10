@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <link rel="stylesheet" href="_ds/industry-c3abca91-7bfb-49e3-89a8-5733c31d0f81/styles.css"></link>
+  <script src="_ds/industry-c3abca91-7bfb-49e3-89a8-5733c31d0f81/_ds_bundle.js"></script>
+  <style>
+    body { margin: 0; }
+    .tag-green { background: oklch(90% 0.09 145); color: oklch(32% 0.1 145); }
+    .tag-amber { background: oklch(90% 0.1 80); color: oklch(38% 0.12 80); }
+    .tag-red { background: oklch(90% 0.09 25); color: oklch(40% 0.15 25); }
+    .badge-pending { display: inline-flex; align-items: center; border: 1px dashed var(--color-accent); color: var(--color-accent); font-size: 10px; padding: 1px 6px; margin-left: 6px; }
+    .op-table-wrap { overflow-x: auto; }
+    .op-sidebar-btn:hover { background: color-mix(in srgb, var(--color-text) 6%, transparent); }
+    .op-tabs { display: none; }
+    .cal-selected { background: var(--color-accent) !important; color: var(--color-bg); font-weight: 700; }
+    .cal-aprobado { background: oklch(60% 0.12 145) !important; color: #fff; }
+    .cal-pendiente { background: oklch(70% 0.12 80) !important; color: #1d1f20; }
+    .cal-denegado { background: oklch(55% 0.16 25) !important; color: #fff; text-decoration: line-through; }
+    .cal-festivo, .cal-weekend { background: var(--color-neutral-300) !important; color: var(--color-neutral-700); }
+    .dialog { background: var(--color-surface) !important; box-shadow: var(--shadow-lg); position: relative; z-index: 1; }
+    .op-nav-row2 { width: 100%; padding-top: var(--space-2); margin-top: var(--space-2); border-top: 1px solid var(--color-divider); }
+    @media (max-width: 880px) {
+      .op-sidebar { display: none !important; }
+      .op-tabs { display: flex !important; }
+      .op-content { padding: var(--space-4) !important; }
+      .op-stats { grid-template-columns: repeat(2, 1fr) !important; }
+      .op-nav { flex-direction: column; align-items: flex-start !important; }
+      .op-nav .seg { margin-left: 0 !important; width: 100%; flex-wrap: wrap; }
+      .dialog { width: 92vw !important; }
+      .op-toolbar { flex-direction: column !important; align-items: stretch !important; }
+      .op-toolbar > * { max-width: none !important; }
+    }
+  </style>
+</helmet>
+<div style="min-height:100vh; display:flex; flex-direction:column; background:var(--color-bg); color:var(--color-text); font-family:var(--font-body);">
+
+  <sc-if value="{{ loggedIn }}" hint-placeholder-val="{{ false }}">
+  <div class="nav op-nav" style="border-bottom:1px solid var(--color-divider); flex-wrap:wrap;">
+    <div class="nav-brand">SIGO · Batallón CG IX</div>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:var(--space-2);">
+      <sc-if value="{{ hasNotificaciones }}" hint-placeholder-val="{{ false }}">
+        <span class="tag tag-accent">{{ notificacionesCount }} novedades</span>
+      </sc-if>
+      <button class="btn btn-ghost" onClick="{{ logout }}">Cerrar sesión</button>
+    </div>
+    <div class="op-nav-row2">
+      <div class="seg" style="overflow:visible; flex-wrap:wrap; height:auto; width:100%;">
+        <sc-for list="{{ roleOptions }}" as="r" hint-placeholder-count="4">
+          <label class="seg-opt" style="white-space:nowrap;">
+            <input type="radio" name="role" checked="{{ r.checked }}" onChange="{{ r.onSelect }}"></input>
+            {{ r.label }}
+          </label>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div class="op-tabs" style="border-bottom:1px solid var(--color-divider); padding:var(--space-2) var(--space-3); gap:var(--space-1); overflow-x:auto;">
+    <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="5">
+      <button class="btn" onClick="{{ n.onClick }}" style="{{ n.mobileStyle }}">{{ n.label }}</button>
+    </sc-for>
+  </div>
+
+  <div style="display:flex; flex:1; min-height:0;">
+    <div class="op-sidebar" style="width:230px; flex:none; border-right:1px solid var(--color-divider); padding:var(--space-4) var(--space-3); display:flex; flex-direction:column; gap:2px;">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="5">
+        <button class="op-sidebar-btn" onClick="{{ n.onClick }}" style="{{ n.desktopStyle }}">{{ n.label }}</button>
+      </sc-for>
+    </div>
+
+    <div class="op-content" style="flex:1; min-width:0; padding:var(--space-6); display:flex; flex-direction:column; gap:var(--space-4);">
+
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:var(--space-2);">
+          <div>
+            <h2 style="margin-bottom:2px;">Dashboard de material</h2>
+            <div class="text-muted" style="font-size:13px;">{{ breadcrumb }}</div>
+          </div>
+          <sc-if value="{{ canAgregarMaterial }}" hint-placeholder-val="{{ false }}">
+            <button class="btn btn-primary" onClick="{{ openAgregar }}">+ Añadir material</button>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ isJefeUnidad }}" hint-placeholder-val="{{ false }}">
+          <div class="card blueprint" style="padding:var(--space-4); gap:var(--space-2);">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Conceder acceso a otra vista (solo jefe de unidad puede hacerlo)</div>
+            <div style="display:flex; gap:var(--space-2); flex-wrap:wrap; align-items:flex-end;">
+              <div class="field" style="max-width:260px; margin:0;">
+                <label>Persona</label>
+                <select class="input" value="{{ grantPersonaId }}" onChange="{{ onGrantPersona }}">
+                  <sc-for list="{{ grantPersonaOptions }}" as="o" hint-placeholder-count="6">
+                    <option value="{{ o.value }}">{{ o.label }}</option>
+                  </sc-for>
+                </select>
+              </div>
+              <div class="field" style="max-width:200px; margin:0;">
+                <label>Vista</label>
+                <select class="input" value="{{ grantRole }}" onChange="{{ onGrantRole }}">
+                  <sc-for list="{{ grantRoleOptions }}" as="o" hint-placeholder-count="4">
+                    <option value="{{ o.value }}">{{ o.label }}</option>
+                  </sc-for>
+                </select>
+              </div>
+              <button class="btn btn-secondary" onClick="{{ concederAcceso }}">Conceder</button>
+            </div>
+            <sc-if value="{{ hasGrants }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:4px; margin-top:var(--space-2);">
+                <sc-for list="{{ grantsList }}" as="g" hint-placeholder-count="2">
+                  <div style="display:flex; justify-content:space-between; font-size:13px;">
+                    <span>{{ g.nombre }} → {{ g.roleLabel }}</span>
+                    <button class="btn btn-ghost" onClick="{{ g.onRevocar }}">Revocar</button>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <div class="op-toolbar" style="display:flex; gap:var(--space-3); align-items:flex-end;">
+          <div class="field" style="max-width:220px; margin:0;">
+            <label>Sección</label>
+            <select class="input" value="{{ filterSection }}" onChange="{{ onFilterSectionChange }}" disabled="{{ sectionLocked }}">
+              <sc-for list="{{ sectionOptions }}" as="o" hint-placeholder-count="9">
+                <option value="{{ o.value }}">{{ o.label }}</option>
+              </sc-for>
+            </select>
+          </div>
+          <sc-if value="{{ showSubFilter }}" hint-placeholder-val="{{ false }}">
+            <div class="field" style="max-width:200px; margin:0;">
+              <label>Sub-sección</label>
+              <select class="input" value="{{ filterSub }}" onChange="{{ onFilterSubChange }}" disabled="{{ subLocked }}">
+                <sc-for list="{{ subOptions }}" as="o" hint-placeholder-count="5">
+                  <option value="{{ o.value }}">{{ o.label }}</option>
+                </sc-for>
+              </select>
+            </div>
+          </sc-if>
+        </div>
+
+        <div class="op-stats" style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--space-3);">
+          <div class="card blueprint">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Total</div>
+            <div class="card-title" style="font-size:28px;">{{ matStats.total }}</div>
+          </div>
+          <div class="card blueprint">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Operativo</div>
+            <div class="card-title" style="font-size:28px;">{{ matStats.operativo }}</div>
+          </div>
+          <div class="card blueprint">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Operativo condicional</div>
+            <div class="card-title" style="font-size:28px;">{{ matStats.condicional }}</div>
+          </div>
+          <div class="card blueprint">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Inoperativo / baja</div>
+            <div class="card-title" style="font-size:28px;">{{ matStats.inoperativoBaja }}</div>
+          </div>
+        </div>
+
+        <div class="card blueprint" style="flex-direction:row; align-items:center; gap:var(--space-6); padding:var(--space-4); flex-wrap:wrap;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="{{ matDonutStyle }}"></div>
+          <div>
+            <div class="card-kicker">% operatividad</div>
+            <div style="display:flex; flex-direction:column; gap:4px; font-size:14px;">
+              <div><span style="display:inline-block; width:10px; height:10px; background:var(--color-accent); margin-right:6px;"></span>Operativo — {{ matOperativoPct }}%</div>
+              <div><span style="display:inline-block; width:10px; height:10px; background:var(--color-neutral-300); margin-right:6px;"></span>No operativo — {{ matNoOperativoPct }}%</div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasMatAlerts }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+            <sc-for list="{{ matAlerts }}" as="a" hint-placeholder-count="2">
+              <div class="card blueprint" style="flex-direction:row; align-items:center; gap:var(--space-3); padding:var(--space-3);">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <span class="tag {{ a.tagClass }}">{{ a.tagLabel }}</span>
+                <span style="font-size:14px;">{{ a.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div class="card blueprint op-table-wrap" style="padding:0;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <table class="table" style="min-width:760px;">
+            <thead>
+              <tr>
+                <th>Código</th><th>Material</th><th>Tipo / Nº serie</th><th>Sección</th><th>Estado</th><th>Responsable</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ materialRows }}" as="m" hint-placeholder-count="6">
+                <tr>
+                  <td style="opacity:0.7;">{{ m.codigo }}</td>
+                  <td>{{ m.nombre }}</td>
+                  <td style="font-size:12px; opacity:0.75;">{{ m.tipoNumeroLabel }}</td>
+                  <td>
+                    {{ m.seccionLabel }}
+                    <sc-if value="{{ m.prestado }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:11px; opacity:0.65;">Prestado a {{ m.prestadoA }} · en {{ m.ubicacion }}</div>
+                    </sc-if>
+                  </td>
+                  <td>
+                    <span class="tag {{ m.tagClass }}">{{ m.estado }}</span>
+                    <sc-if value="{{ m.enRevision }}" hint-placeholder-val="{{ false }}">
+                      <span class="badge-pending">pendiente validación</span>
+                    </sc-if>
+                    <sc-if value="{{ m.pendienteValidacion }}" hint-placeholder-val="{{ false }}">
+                      <span class="badge-pending">pendiente de validar (añadido por soldado)</span>
+                    </sc-if>
+                  </td>
+                  <td>{{ m.responsable }}</td>
+                  <td>
+                    <sc-if value="{{ m.canReportar }}" hint-placeholder-val="{{ false }}">
+                      <button class="btn btn-secondary" onClick="{{ m.onReportar }}">Reportar avería</button>
+                    </sc-if>
+                    <sc-if value="{{ m.canValidarMaterial }}" hint-placeholder-val="{{ false }}">
+                      <button class="btn btn-secondary" onClick="{{ m.onValidarMaterial }}">Validar material</button>
+                    </sc-if>
+                    <sc-if value="{{ m.esMio }}" hint-placeholder-val="{{ false }}">
+                      <button class="btn btn-ghost" onClick="{{ m.onEditarPropio }}">Editar</button>
+                      <button class="btn btn-ghost" onClick="{{ m.onEliminarPropio }}">Eliminar</button>
+                    </sc-if>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isMantenimiento }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h2 style="margin-bottom:2px;">Flujo de validación y mantenimiento</h2>
+          <div class="text-muted" style="font-size:13px;">Reportado → validado / en escalón → en reparación → cerrado</div>
+        </div>
+
+        <sc-if value="{{ hasCasos }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+            <sc-for list="{{ casoRows }}" as="c" hint-placeholder-count="3">
+              <div class="card blueprint" style="padding:var(--space-4);">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:var(--space-2);">
+                  <div>
+                    <div class="card-title">{{ c.codigo }} — {{ c.nombre }}</div>
+                    <div class="text-muted" style="font-size:12px;">{{ c.seccionLabel }} · reportado por {{ c.reportadoPor }} el {{ c.fecha }}</div>
+                  </div>
+                  <span class="tag {{ c.stageTagClass }}">{{ c.stageLabel }}</span>
+                </div>
+                <sc-if value="{{ c.hasDetail }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:13px; opacity:0.8;">{{ c.detail }}</div>
+                </sc-if>
+                <div style="display:flex; gap:var(--space-2); margin-top:var(--space-1); flex-wrap:wrap;">
+                  <sc-if value="{{ c.canValidar }}" hint-placeholder-val="{{ false }}">
+                    <button class="btn btn-primary" onClick="{{ c.onValidar }}">Validar avería</button>
+                    <button class="btn btn-secondary" onClick="{{ c.onDescartar }}">Descartar (falsa alarma)</button>
+                  </sc-if>
+                  <sc-if value="{{ c.canTransportar }}" hint-placeholder-val="{{ false }}">
+                    <button class="btn btn-primary" onClick="{{ c.onTransportar }}">Registrar transporte a reparación</button>
+                  </sc-if>
+                  <sc-if value="{{ c.canCerrar }}" hint-placeholder-val="{{ false }}">
+                    <button class="btn btn-primary" onClick="{{ c.onCerrar }}">Subir documento de reparación</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hasCasos }}" hint-placeholder-val="{{ true }}"></sc-if>
+        <sc-if value="{{ noCasos }}" hint-placeholder-val="{{ false }}">
+          <div class="card blueprint" style="padding:var(--space-6); text-align:center; opacity:0.6;">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            No hay averías abiertas.
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasCerrados }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <h4>Cerrados recientemente</h4>
+            <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+              <sc-for list="{{ cerradoRows }}" as="c" hint-placeholder-count="1">
+                <div style="display:flex; justify-content:space-between; font-size:13px; padding:var(--space-2) 0; border-bottom:1px solid var(--color-divider);">
+                  <span>{{ c.codigo }} — {{ c.nombre }}</span>
+                  <span class="tag {{ c.resultadoTagClass }}">{{ c.resultado }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ isPersonal }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h2 style="margin-bottom:2px;">Control de personal</h2>
+          <div class="text-muted" style="font-size:13px;">{{ breadcrumb }}</div>
+        </div>
+
+        <div class="op-toolbar" style="display:flex; gap:var(--space-3); align-items:flex-end;">
+          <div class="field" style="max-width:220px; margin:0;">
+            <label>Sección</label>
+            <select class="input" value="{{ filterSection }}" onChange="{{ onFilterSectionChange }}" disabled="{{ sectionLocked }}">
+              <sc-for list="{{ sectionOptions }}" as="o" hint-placeholder-count="9">
+                <option value="{{ o.value }}">{{ o.label }}</option>
+              </sc-for>
+            </select>
+          </div>
+          <sc-if value="{{ isJefeSeccion }}" hint-placeholder-val="{{ false }}">
+            <div class="field" style="max-width:200px; margin:0;">
+              <label>Tu sección (en Transmisiones)</label>
+              <select class="input" value="{{ jefeSeccionSub }}" onChange="{{ onJefeSeccionSub }}">
+                <sc-for list="{{ subOptionsJefe }}" as="o" hint-placeholder-count="4">
+                  <option value="{{ o.value }}">{{ o.label }}</option>
+                </sc-for>
+              </select>
+            </div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ hasPendientes }}" hint-placeholder-val="{{ false }}">
+          <div class="card blueprint" style="padding:var(--space-4);">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Personal de Transmisiones pendiente de asignar a una sección</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <sc-for list="{{ pendientesIncorporar }}" as="p" hint-placeholder-count="2">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:14px;">
+                  <span>{{ p.nombre }}</span>
+                  <button class="btn btn-secondary" onClick="{{ p.onIncorporar }}">Incorporar a mi sección</button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <div class="op-stats" style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--space-3);">
+          <div class="card blueprint">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Total</div>
+            <div class="card-title" style="font-size:28px;">{{ perStats.total }}</div>
+          </div>
+          <div class="card blueprint">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Activo</div>
+            <div class="card-title" style="font-size:28px;">{{ perStats.activo }}</div>
+          </div>
+          <div class="card blueprint">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Curso / vacaciones</div>
+            <div class="card-title" style="font-size:28px;">{{ perStats.curso }}</div>
+          </div>
+          <div class="card blueprint">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div class="card-kicker">Rebajado</div>
+            <div class="card-title" style="font-size:28px;">{{ perStats.rebajado }}</div>
+          </div>
+        </div>
+
+        <div class="card blueprint" style="flex-direction:row; align-items:center; gap:var(--space-6); padding:var(--space-4); flex-wrap:wrap;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="{{ perDonutStyle }}"></div>
+          <div>
+            <div class="card-kicker">% disponibilidad</div>
+            <div style="display:flex; flex-direction:column; gap:4px; font-size:14px;">
+              <div><span style="display:inline-block; width:10px; height:10px; background:var(--color-accent); margin-right:6px;"></span>Activo — {{ perOperativoPct }}%</div>
+              <div><span style="display:inline-block; width:10px; height:10px; background:var(--color-neutral-300); margin-right:6px;"></span>No disponible — {{ perNoOperativoPct }}%</div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasPerAlerts }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+            <sc-for list="{{ perAlerts }}" as="a" hint-placeholder-count="2">
+              <div class="card blueprint" style="flex-direction:row; align-items:center; gap:var(--space-3); padding:var(--space-3);">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <span class="tag {{ a.tagClass }}">{{ a.tagLabel }}</span>
+                <span style="font-size:14px;">{{ a.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div class="card blueprint op-table-wrap" style="padding:0;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <table class="table" style="min-width:700px;">
+            <thead><tr><th>Persona</th><th>Antigüedad</th><th>Sección</th><th>Estado</th><th>Desde</th><th>Hasta</th><th>Acceso</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ personalRows }}" as="p" hint-placeholder-count="6">
+                <tr>
+                  <td>{{ p.nombre }}</td>
+                  <td style="font-size:12px; opacity:0.75;">{{ p.antiguedadLabel }}</td>
+                  <td>{{ p.seccionLabel }}</td>
+                  <td><span class="tag {{ p.tagClass }}">{{ p.estado }}</span></td>
+                  <td>{{ p.desde }}</td>
+                  <td>{{ p.hasta }}</td>
+                  <td style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <sc-if value="{{ p.canRenovarPerfil }}" hint-placeholder-val="{{ false }}">
+                      <button class="btn btn-ghost" onClick="{{ p.onPerfil }}">Renovar usuario / contraseña</button>
+                    </sc-if>
+                    <sc-if value="{{ p.canGestionarCuenta }}" hint-placeholder-val="{{ false }}">
+                      <button class="btn btn-ghost" onClick="{{ p.onToggleCuenta }}">{{ p.toggleCuentaLabel }}</button>
+                    </sc-if>
+                    <sc-if value="{{ p.cuentaDesactivada }}" hint-placeholder-val="{{ false }}">
+                      <span class="tag tag-neutral">Desactivada</span>
+                    </sc-if>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPermisos }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:var(--space-2);">
+          <div>
+            <h2 style="margin-bottom:2px;">Panel de permisos</h2>
+            <div class="text-muted" style="font-size:13px;">Solicitud → 1ª instancia (suboficial / jefe de sección) → jefe de unidad</div>
+          </div>
+        </div>
+
+        <div class="card blueprint" style="padding:var(--space-4); gap:var(--space-3);">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display:flex; align-items:center; gap:var(--space-3);">
+            <button class="btn btn-secondary" onClick="{{ calPrevAnio }}">‹</button>
+            <div class="card-title" style="min-width:70px; text-align:center;">{{ calAnio }}</div>
+            <button class="btn btn-secondary" onClick="{{ calNextAnio }}">›</button>
+            <div style="display:flex; gap:var(--space-3); flex-wrap:wrap; font-size:11px; margin-left:auto;">
+              <span><span style="display:inline-block; width:10px; height:10px; background:var(--color-accent); margin-right:4px;"></span>Seleccionado</span>
+              <span><span style="display:inline-block; width:10px; height:10px; background:oklch(60% 0.12 145); margin-right:4px;"></span>Aprobado</span>
+              <span><span style="display:inline-block; width:10px; height:10px; background:oklch(70% 0.12 80); margin-right:4px;"></span>Pendiente</span>
+              <span><span style="display:inline-block; width:10px; height:10px; background:var(--color-neutral-300); margin-right:4px;"></span>Finde / festivo</span>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:var(--space-3);">
+            <sc-for list="{{ calMonths }}" as="month" hint-placeholder-count="12">
+              <div>
+                <div style="font-weight:600; font-size:13px; margin-bottom:4px;">{{ month.label }}</div>
+                <sc-for list="{{ month.weeks }}" as="week" hint-placeholder-count="5">
+                  <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; margin-bottom:2px;">
+                    <sc-for list="{{ week.days }}" as="d" hint-placeholder-count="7">
+                      <sc-if value="{{ d.blank }}" hint-placeholder-val="{{ false }}">
+                        <div></div>
+                      </sc-if>
+                      <sc-if value="{{ d.notBlank }}" hint-placeholder-val="{{ true }}">
+                        <div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:10px; cursor:{{ d.cursorStyle }}; background:var(--color-bg);" class="{{ d.statusClass }}" onClick="{{ d.onClick }}">{{ d.day }}</div>
+                      </sc-if>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div class="card blueprint" style="padding:var(--space-4); gap:var(--space-2);">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div class="card-kicker">Solicitar vacaciones / permiso</div>
+          <sc-if value="{{ hasDocumentoSeleccionado }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:12px; display:flex; gap:var(--space-2); align-items:center;">
+              <span class="text-muted">Basado en el documento:</span> {{ documentoSeleccionadoTitulo }}
+              <button class="btn btn-ghost" onClick="{{ quitarDocumentoSeleccionado }}">Quitar</button>
+            </div>
+          </sc-if>
+          <div style="display:flex; gap:var(--space-3); flex-wrap:wrap; align-items:flex-end;">
+            <div class="field" style="max-width:240px; margin:0;">
+              <label>Solicitud</label>
+              <select class="input" value="{{ calTipo }}" onChange="{{ onCalTipo }}">
+                <sc-for list="{{ calTiposOptions }}" as="o" hint-placeholder-count="5">
+                  <option value="{{ o.value }}">{{ o.label }}</option>
+                </sc-for>
+              </select>
+            </div>
+            <sc-if value="{{ isCalExtraordinario }}" hint-placeholder-val="{{ false }}">
+              <div class="field" style="flex:1; min-width:220px; margin:0;">
+                <label>Justificación (obligatoria, máx. 10 días/año)</label>
+                <input class="input" type="text" value="{{ calJustificacion }}" onChange="{{ onCalJustificacion }}" placeholder="Motivo del permiso extraordinario"></input>
+              </div>
+            </sc-if>
+            <div class="field" style="min-width:220px; margin:0;">
+              <label>Documento justificativo (opcional)</label>
+              <input class="input" type="file" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png" onChange="{{ onCalJustificanteArchivo }}"></input>
+              <sc-if value="{{ hasCalJustificante }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:11px; opacity:0.7; margin-top:4px;">Adjunto: {{ calJustificanteNombre }}</div>
+              </sc-if>
+            </div>
+          </div>
+          <div style="font-size:13px;">
+            <div><span class="text-muted">Días seleccionados:</span> {{ calNumDias }}</div>
+            <sc-if value="{{ hasCalSeleccion }}" hint-placeholder-val="{{ false }}">
+              <div class="text-muted" style="font-size:12px;">{{ calDiasSeleccionados }}</div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ hasCalError }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px; color:var(--color-accent-800);">{{ calError }}</div>
+          </sc-if>
+          <div style="display:flex; gap:var(--space-2);">
+            <button class="btn btn-secondary" onClick="{{ limpiarSeleccionCal }}">Limpiar selección</button>
+            <button class="btn btn-primary" onClick="{{ confirmSolicitudCalendario }}" disabled="{{ !hasCalSeleccion }}">Solicitar vacaciones/permisos</button>
+          </div>
+        </div>
+
+        <div class="card blueprint op-table-wrap" style="padding:0;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <table class="table" style="min-width:820px;">
+            <thead><tr><th>Persona</th><th>Tipo</th><th>Días</th><th>Fechas</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ permisoRows }}" as="p" hint-placeholder-count="5">
+                <tr>
+                  <td>{{ p.persona }}</td>
+                  <td>{{ p.tipo }}</td>
+                  <td>{{ p.dias }}</td>
+                  <td style="font-size:13px;">
+                    {{ p.rango }}
+                    <sc-if value="{{ p.hasJustificante }}" hint-placeholder-val="{{ false }}">
+                      <div><a href="{{ p.justificanteDataUrl }}" download="{{ p.justificanteNombre }}" style="font-size:11px; color:var(--color-accent-700);">Justificante: {{ p.justificanteNombre }}</a></div>
+                    </sc-if>
+                  </td>
+                  <td><span class="tag {{ p.tagClass }}">{{ p.estadoLabel }}</span></td>
+                  <td>
+                    <div style="display:flex; gap:var(--space-2); flex-wrap:wrap;">
+                      <sc-if value="{{ p.canAct }}" hint-placeholder-val="{{ false }}">
+                        <button class="btn btn-secondary" onClick="{{ p.onAprobar }}">Aprobar</button>
+                        <button class="btn btn-secondary" onClick="{{ p.onDenegar }}">Denegar</button>
+                      </sc-if>
+                      <sc-if value="{{ p.canCancelar }}" hint-placeholder-val="{{ false }}">
+                        <button class="btn btn-ghost" onClick="{{ p.onCancelar }}">Cancelar</button>
+                      </sc-if>
+                    </div>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isCuadrantes }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:var(--space-2);">
+          <div>
+            <h2 style="margin-bottom:2px;">Cuadrantes inteligentes</h2>
+            <div class="text-muted" style="font-size:13px;">Vista preliminar de la siguiente fase</div>
+          </div>
+          <span class="tag tag-outline">Próxima fase</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:var(--space-3);">
+          <button class="btn btn-secondary" onClick="{{ prevMes }}">‹ Mes anterior</button>
+          <div class="card-title" style="min-width:180px; text-align:center;">{{ cuadranteMesLabel }}</div>
+          <button class="btn btn-secondary" onClick="{{ nextMes }}">Mes siguiente ›</button>
+        </div>
+
+        <div class="card blueprint" style="padding:var(--space-4);">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div class="card-kicker">Reglas activas</div>
+          <ul style="margin:0; padding-left:18px; font-size:14px; display:flex; flex-direction:column; gap:4px;">
+            <li>Rotación por antigüedad: entra un titular (o varios, según el servicio) por día, de más antiguo a más moderno.</li>
+            <li>El imaginaria de cada servicio es quien entraría al día siguiente. Si el titular falla, entra el imaginaria en su lugar.</li>
+            <li>Solo eximen del servicio: baja, vacaciones de más de 5 días hábiles continuos, rebaje médico o cursos.</li>
+            <li>El permiso oficial (10 días entre el 15 de junio y el 15 de septiembre, en bloques de 5+5, 10 seguidos o como prefiera el personal) solo exime de servicio cuando se disfrutan 5 o más días hábiles seguidos.</li>
+          </ul>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:var(--space-4);">
+          <sc-for list="{{ servicioCards }}" as="svc" hint-placeholder-count="6">
+            <div class="card blueprint op-table-wrap" style="padding:var(--space-3);">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <div class="card-title">{{ svc.label }}</div>
+              <div class="text-muted" style="font-size:12px;">{{ svc.subtitle }}</div>
+              <sc-if value="{{ svc.poolTooSmall }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px; color:var(--color-accent-800);">Personal disponible insuficiente para cubrir titulares e imaginarias este servicio.</div>
+              </sc-if>
+              <table class="table" style="min-width:640px;">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <sc-for list="{{ cuadranteDias }}" as="d" hint-placeholder-count="7"><th style="text-align:center;">{{ d.label }}</th></sc-for>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ svc.grid }}" as="row" hint-placeholder-count="4">
+                    <tr>
+                      <td style="white-space:nowrap; font-size:13px; {{ row.nombreStyle }}">{{ row.nombre }}</td>
+                      <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="7">
+                        <td style="text-align:center; padding:2px;" onClick="{{ c.onClick }}">
+                          <div style="{{ c.cellStyle }} width:26px; height:26px; display:flex; align-items:center; justify-content:center; margin:0 auto; font-size:12px; border-radius:2px;">{{ c.mark }}</div>
+                        </td>
+                      </sc-for>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+              <div style="font-size:11px; opacity:0.65; margin-top:4px;">S = servicio (titular) · I = imaginaria · F = falta (no entró) · S* = imaginaria entró por falta del titular<sc-if value="{{ svc.canEdit }}" hint-placeholder-val="{{ false }}"> · clic en una S para marcar falta</sc-if></div>
+
+              <sc-if value="{{ svc.canEdit }}" hint-placeholder-val="{{ false }}">
+                <button class="btn btn-ghost" style="margin-top:var(--space-2); align-self:flex-start;" onClick="{{ svc.onToggleEdit }}">{{ svc.editToggleLabel }}</button>
+              </sc-if>
+
+              <sc-if value="{{ svc.editOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:var(--space-3);">
+                  <div class="card-kicker">Modificar asignación (cualquier motivo)</div>
+                  <div class="op-table-wrap">
+                    <table class="table" style="min-width:900px;">
+                      <thead>
+                        <tr>
+                          <th>Puesto</th>
+                          <sc-for list="{{ cuadranteDias }}" as="d" hint-placeholder-count="7"><th>{{ d.label }}</th></sc-for>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <sc-for list="{{ svc.editRows }}" as="er" hint-placeholder-count="1">
+                          <tr>
+                            <td style="font-weight:600; white-space:nowrap;">{{ er.label }}</td>
+                            <sc-for list="{{ er.cells }}" as="cell" hint-placeholder-count="7">
+                              <td>
+                                <select class="input" style="font-size:11px; min-height:28px;" value="{{ cell.value }}" onChange="{{ cell.onChange }}">
+                                  <sc-for list="{{ svc.poolOptions }}" as="op" hint-placeholder-count="4">
+                                    <option value="{{ op.value }}">{{ op.label }}</option>
+                                  </sc-for>
+                                </select>
+                              </td>
+                            </sc-for>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div class="card blueprint" style="padding:var(--space-4);">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div class="card-kicker">Excluidos automáticamente esta semana</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <sc-for list="{{ excluidos }}" as="e" hint-placeholder-count="3">
+              <div style="display:flex; justify-content:space-between; font-size:13px;">
+                <span>{{ e.nombre }}</span>
+                <span class="tag {{ e.tagClass }}">{{ e.estado }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPapeleo }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h2 style="margin-bottom:2px;">Papeleo / oficina</h2>
+          <div class="text-muted" style="font-size:13px;">Revisión asistida por IA antes de que la solicitud llegue a oficina — no sustituye la validación oficial.</div>
+        </div>
+
+        <div class="card blueprint" style="padding:var(--space-4); gap:var(--space-3);">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:var(--space-2);">
+            <div class="card-kicker">Documentos de interés (baja médica, vacantes, procedimientos...)</div>
+            <sc-if value="{{ canSubirDocumento }}" hint-placeholder-val="{{ false }}">
+              <button class="btn btn-secondary" onClick="{{ openSubirDocumento }}">+ Subir documento</button>
+            </sc-if>
+          </div>
+
+          <div style="display:flex; gap:var(--space-2); flex-wrap:wrap; align-items:center;">
+            <input class="input" style="flex:1; min-width:220px;" type="text" value="{{ docSearchQuery }}" onChange="{{ onDocSearchQuery }}" placeholder="Describe qué documento buscas (ej. cómo pedir la baja médica)..."></input>
+            <button class="btn btn-primary" onClick="{{ buscarDocumentoIA }}" disabled="{{ docSearchDisabled }}">Buscar con IA</button>
+            <sc-if value="{{ hasDocSearchActive }}" hint-placeholder-val="{{ false }}">
+              <button class="btn btn-ghost" onClick="{{ limpiarBusquedaDoc }}">Ver todos</button>
+            </sc-if>
+          </div>
+          <sc-if value="{{ docSearchLoading }}" hint-placeholder-val="{{ false }}">
+            <div class="text-muted" style="font-size:13px;">Buscando...</div>
+          </sc-if>
+          <sc-if value="{{ hasDocSearchError }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px; color:var(--color-accent-800);">{{ docSearchError }}</div>
+          </sc-if>
+          <sc-if value="{{ noDocResults }}" hint-placeholder-val="{{ false }}">
+            <div class="text-muted" style="font-size:13px;">No se encontró ningún documento relacionado con esa búsqueda.</div>
+          </sc-if>
+
+          <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+            <sc-for list="{{ documentosRows }}" as="d" hint-placeholder-count="4">
+              <div style="border-bottom:1px solid var(--color-divider); padding:var(--space-2) 0; font-size:14px; display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; justify-content:space-between; gap:var(--space-2);">
+                  <span style="font-weight:600;">{{ d.titulo }}</span>
+                  <span class="tag tag-accent">{{ d.seccionOrigen }}</span>
+                </div>
+                <div class="text-muted" style="font-size:12px;">{{ d.categoria }} · subido {{ d.fecha }}</div>
+                <div style="font-size:12px; font-style:italic;">{{ d.normativa }}</div>
+                <sc-if value="{{ d.hasArchivo }}" hint-placeholder-val="{{ false }}">
+                  <a href="{{ d.archivoDataUrl }}" download="{{ d.archivoLabel }}" style="font-size:12px; color:var(--color-accent-700); width:fit-content;">Descargar {{ d.archivoLabel }}</a>
+                </sc-if>
+                <button class="btn btn-ghost" style="width:fit-content; margin-top:4px;" onClick="{{ d.onSeleccionar }}">{{ d.seleccionarLabel }}</button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div class="card blueprint" style="padding:var(--space-4); gap:var(--space-3);">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div class="field" style="max-width:320px;">
+            <label>Tipo de permiso</label>
+            <select class="input" value="{{ papeleoTipo }}" onChange="{{ onPapeleoTipo }}">
+              <sc-for list="{{ papeleoTipos }}" as="o" hint-placeholder-count="6">
+                <option value="{{ o.value }}">{{ o.label }}</option>
+              </sc-for>
+            </select>
+          </div>
+          <div class="field">
+            <label>Texto de la solicitud</label>
+            <textarea class="input" style="min-height:140px;" value="{{ papeleoTexto }}" onChange="{{ onPapeleoTexto }}" placeholder="Pega o escribe aquí el texto de la solicitud tal como la ha redactado el solicitante..."></textarea>
+          </div>
+          <div>
+            <button class="btn btn-primary" onClick="{{ revisarPapeleo }}" disabled="{{ papeleoDisabled }}">Revisar con IA</button>
+          </div>
+          <sc-if value="{{ papeleoLoading }}" hint-placeholder-val="{{ false }}">
+            <div class="text-muted" style="font-size:13px;">Revisando contra la normativa de la unidad...</div>
+          </sc-if>
+          <sc-if value="{{ hasPapeleoError }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px; color:var(--color-accent-800);">{{ papeleoError }}</div>
+          </sc-if>
+          <sc-if value="{{ hasPapeleoResultado }}" hint-placeholder-val="{{ false }}">
+            <div class="card" style="background:var(--color-surface); padding:var(--space-3); gap:var(--space-2);">
+              <span class="tag {{ papeleoTagClass }}" style="align-self:flex-start;">{{ papeleoTagLabel }}</span>
+              <div style="font-size:14px; white-space:pre-wrap;">{{ papeleoResultadoTexto }}</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+
+  <sc-if value="{{ showReportar }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" onClick="{{ closeModal }}">
+      <div class="dialog" onClick="{{ stopPropagation }}">
+        <div class="dialog-title">Reportar avería</div>
+        <div class="dialog-body">{{ modalMaterialName }}</div>
+        <div class="field">
+          <label>Estado observado</label>
+          <select class="input" value="{{ reportarDraft.estado }}" onChange="{{ onReportarEstado }}">
+            <option value="Condicional">Condicional</option>
+            <option value="Inoperativo">Inoperativo</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Descripción</label>
+          <textarea class="input" value="{{ reportarDraft.descripcion }}" onChange="{{ onReportarDescripcion }}" placeholder="Qué ha pasado..."></textarea>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeModal }}">Cancelar</button>
+          <button class="btn btn-primary" onClick="{{ confirmReportar }}">Enviar parte</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showSubirDoc }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" onClick="{{ closeModal }}">
+      <div class="dialog" onClick="{{ stopPropagation }}">
+        <div class="dialog-title">Subir documento de interés</div>
+        <div class="field">
+          <label>Título</label>
+          <input class="input" type="text" value="{{ subirDraft.titulo }}" onChange="{{ onSubirTitulo }}" placeholder="ej. Procedimiento de baja médica"></input>
+        </div>
+        <div class="field">
+          <label>Categoría</label>
+          <input class="input" type="text" value="{{ subirDraft.categoria }}" onChange="{{ onSubirCategoria }}" placeholder="ej. Sanidad, Personal, Logística..."></input>
+        </div>
+        <div class="field">
+          <label>Ley o boletín de referencia</label>
+          <input class="input" type="text" value="{{ subirDraft.normativa }}" onChange="{{ onSubirNormativa }}" placeholder="ej. Orden DEF/2015, BOD nº..."></input>
+        </div>
+        <div class="field">
+          <label>Archivo (Word, PDF u otro)</label>
+          <input class="input" type="file" accept=".pdf,.doc,.docx,.odt" onChange="{{ onSubirArchivo }}"></input>
+          <sc-if value="{{ hasSubirArchivo }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:12px; opacity:0.7; margin-top:4px;">Adjunto: {{ subirArchivoNombre }}</div>
+          </sc-if>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeModal }}">Cancelar</button>
+          <button class="btn btn-primary" onClick="{{ confirmSubirDocumento }}">Publicar</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showPerfil }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" onClick="{{ closeModal }}">
+      <div class="dialog" onClick="{{ stopPropagation }}">
+        <div class="dialog-title">Perfil de acceso</div>
+        <div class="dialog-body">{{ perfilPersonaNombre }}</div>
+        <div class="field">
+          <label>Nombre de usuario</label>
+          <input class="input" type="text" value="{{ perfilDraft.usuario }}" onChange="{{ onPerfilUsuario }}"></input>
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input class="input" type="text" value="{{ perfilDraft.password }}" onChange="{{ onPerfilPassword }}"></input>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeModal }}">Cancelar</button>
+          <button class="btn btn-primary" onClick="{{ confirmPerfil }}">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showAgregar }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" onClick="{{ closeModal }}">
+      <div class="dialog" onClick="{{ stopPropagation }}">
+        <div class="dialog-title">Añadir material</div>
+        <div class="dialog-body">Se registrará en: {{ breadcrumb }} — cambia la sección/sub-sección en el filtro del dashboard si no es la tuya.</div>
+        <div class="field">
+          <label>Nombre</label>
+          <input class="input" type="text" value="{{ agregarDraft.nombre }}" onChange="{{ onAgregarNombre }}" placeholder="ej. Batería PRC-152"></input>
+        </div>
+        <div class="field">
+          <label>Tipo</label>
+          <select class="input" value="{{ agregarDraft.tipo }}" onChange="{{ onAgregarTipo }}">
+            <option value="Oficial">Oficial (con número de serie)</option>
+            <option value="Fungible">Fungible (sin número de serie)</option>
+          </select>
+        </div>
+        <sc-if value="{{ isAgregarOficial }}" hint-placeholder-val="{{ true }}">
+          <div class="field">
+            <label>Número de serie</label>
+            <input class="input" type="text" value="{{ agregarDraft.numeroSerie }}" onChange="{{ onAgregarNumeroSerie }}" placeholder="Proporcionado por el Ejército"></input>
+          </div>
+        </sc-if>
+        <div class="field">
+          <label>Estado inicial</label>
+          <select class="input" value="{{ agregarDraft.estado }}" onChange="{{ onAgregarEstado }}">
+            <option value="Operativo">Operativo</option>
+            <option value="Condicional">Condicional</option>
+            <option value="Inoperativo">Inoperativo</option>
+          </select>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeModal }}">Cancelar</button>
+          <button class="btn btn-primary" onClick="{{ confirmAgregar }}">Añadir</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showTransportar }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" onClick="{{ closeModal }}">
+      <div class="dialog" onClick="{{ stopPropagation }}">
+        <div class="dialog-title">Registrar transporte</div>
+        <div class="dialog-body">{{ modalMaterialName }}</div>
+        <div class="field">
+          <label>Lugar de reparación</label>
+          <input class="input" type="text" value="{{ transportarDraft.lugar }}" onChange="{{ onTransportarLugar }}"></input>
+        </div>
+        <div class="field">
+          <label>Responsable del transporte</label>
+          <input class="input" type="text" value="{{ transportarDraft.transportista }}" onChange="{{ onTransportarTransportista }}"></input>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeModal }}">Cancelar</button>
+          <button class="btn btn-primary" onClick="{{ confirmTransportar }}">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showCerrar }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" onClick="{{ closeModal }}">
+      <div class="dialog" onClick="{{ stopPropagation }}">
+        <div class="dialog-title">Documento de reparación</div>
+        <div class="dialog-body">{{ modalMaterialName }}</div>
+        <div class="field">
+          <label>Resultado</label>
+          <select class="input" value="{{ cerrarDraft.resultado }}" onChange="{{ onCerrarResultado }}">
+            <option value="Operativo">Reparado — vuelve a operativo</option>
+            <option value="Baja">No tiene arreglo — pasa a baja</option>
+          </select>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeModal }}">Cancelar</button>
+          <button class="btn btn-primary" onClick="{{ confirmCerrar }}">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showSolicitar }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" onClick="{{ closeModal }}">
+      <div class="dialog" onClick="{{ stopPropagation }}">
+        <div class="dialog-title">Solicitar permiso</div>
+        <div class="field">
+          <label>Solicitante</label>
+          <input class="input" type="text" value="{{ permisoDraft.persona }}" onChange="{{ onPermisoPersona }}"></input>
+        </div>
+        <div class="field">
+          <label>Tipo</label>
+          <select class="input" value="{{ permisoDraft.tipo }}" onChange="{{ onPermisoTipo }}">
+            <option value="Permiso oficial">Permiso oficial</option>
+            <option value="Asuntos propios">Asuntos propios</option>
+            <option value="Permiso extraordinario">Permiso extraordinario</option>
+          </select>
+        </div>
+        <sc-if value="{{ isExtraordinario }}" hint-placeholder-val="{{ false }}">
+          <div class="text-muted" style="font-size:12px;">Máximo 10 días al año, concedido por los jefes según ejercicios o cursos.</div>
+        </sc-if>
+        <div style="display:flex; gap:var(--space-2);">
+          <div class="field" style="flex:1;">
+            <label>Desde</label>
+            <input class="input" type="date" value="{{ permisoDraft.desde }}" onChange="{{ onPermisoDesde }}"></input>
+          </div>
+          <div class="field" style="flex:1;">
+            <label>Hasta</label>
+            <input class="input" type="date" value="{{ permisoDraft.hasta }}" onChange="{{ onPermisoHasta }}"></input>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeModal }}">Cancelar</button>
+          <button class="btn btn-primary" onClick="{{ confirmSolicitar }}">Enviar solicitud</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  </sc-if>
+
+  <sc-if value="{{ isLoginScreenVisible }}" hint-placeholder-val="{{ true }}">
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:var(--space-6);">
+      <div class="card blueprint" style="width:380px; padding:var(--space-6); display:flex; flex-direction:column; gap:var(--space-3);">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div class="card-title">SIGO · Batallón CG IX</div>
+        <div class="seg" style="width:100%;">
+          <label class="seg-opt" style="flex:1; text-align:center;">
+            <input type="radio" name="authmode" checked="{{ isLoginMode }}" onChange="{{ setLoginMode }}"></input>
+            Iniciar sesión
+          </label>
+          <label class="seg-opt" style="flex:1; text-align:center;">
+            <input type="radio" name="authmode" checked="{{ isPrimerMode }}" onChange="{{ setPrimerMode }}"></input>
+            Crear cuenta
+          </label>
+        </div>
+
+        <sc-if value="{{ isLoginMode }}" hint-placeholder-val="{{ true }}">
+          <div class="field">
+            <label>Usuario</label>
+            <input class="input" type="text" value="{{ authUsuario }}" onChange="{{ onAuthUsuario }}"></input>
+          </div>
+          <div class="field">
+            <label>Contraseña</label>
+            <input class="input" type="password" value="{{ authPassword }}" onChange="{{ onAuthPassword }}"></input>
+          </div>
+          <button class="btn btn-primary" onClick="{{ confirmLogin }}">Entrar</button>
+        </sc-if>
+
+        <sc-if value="{{ isPrimerMode }}" hint-placeholder-val="{{ false }}">
+          <div class="text-muted" style="font-size:12px;">Crear cuenta: selecciona tu nombre y crea tu usuario y contraseña. Solo puede hacerse una vez — si ya tienes cuenta y olvidaste tus datos, acude al administrador (jefe de unidad) para renovarlos.</div>
+          <div class="field">
+            <label>Tu nombre</label>
+            <select class="input" value="{{ primerPersonaId }}" onChange="{{ onPrimerPersona }}">
+              <sc-for list="{{ primerPersonaOptions }}" as="o" hint-placeholder-count="6">
+                <option value="{{ o.value }}">{{ o.label }}</option>
+              </sc-for>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tu sección</label>
+            <select class="input" value="{{ primerSeccion }}" onChange="{{ onPrimerSeccion }}">
+              <sc-for list="{{ primerSeccionOptions }}" as="o" hint-placeholder-count="9">
+                <option value="{{ o.value }}">{{ o.label }}</option>
+              </sc-for>
+            </select>
+          </div>
+          <sc-if value="{{ isPrimerTransmisiones }}" hint-placeholder-val="{{ false }}">
+            <div class="field">
+              <label>Tu sub-sección</label>
+              <select class="input" value="{{ primerSub }}" onChange="{{ onPrimerSub }}">
+                <sc-for list="{{ primerSubOptions }}" as="o" hint-placeholder-count="4">
+                  <option value="{{ o.value }}">{{ o.label }}</option>
+                </sc-for>
+              </select>
+            </div>
+          </sc-if>
+          <div class="field">
+            <label>Elige un usuario</label>
+            <input class="input" type="text" value="{{ primerUsuario }}" onChange="{{ onPrimerUsuario }}"></input>
+          </div>
+          <div class="field">
+            <label>Elige una contraseña</label>
+            <input class="input" type="password" value="{{ primerPassword }}" onChange="{{ onPrimerPassword }}"></input>
+          </div>
+          <button class="btn btn-primary" onClick="{{ confirmPrimerAcceso }}">Crear cuenta y entrar</button>
+        </sc-if>
+
+        <sc-if value="{{ hasAuthError }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:13px; color:var(--color-accent-800);">{{ authError }}</div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const SECCIONES = ['S1','S2','S3','S4','Plana Mayor','Banda musical','Transmisiones','Defensa contra carros','Inteligencia'];
+const SUBSECCIONES = ['Redes','Radio','Plana','Satélite'];
+
+const ROLE_HOME = {
+  jefe_unidad: { label: 'Jefe de unidad', section: null, sub: null },
+  jefe_seccion: { label: 'Jefe de sección', section: 'Transmisiones', sub: null },
+  suboficial: { label: 'Suboficial', section: 'Transmisiones', sub: null },
+  cabo: { label: 'Cabo', section: 'Transmisiones', sub: 'Redes' },
+  cabo_acceso: { label: 'Cabo (con acceso)', section: 'Transmisiones', sub: 'Redes' },
+  soldado: { label: 'Soldado', section: 'Transmisiones', sub: 'Redes' },
+  admin: { label: 'Administrador', section: null, sub: null },
+};
+
+const NAV_SCREENS = [
+  { id: 'dashboard', label: 'Material' },
+  { id: 'mantenimiento', label: 'Mantenimiento' },
+  { id: 'personal', label: 'Personal' },
+  { id: 'permisos', label: 'Permisos' },
+  { id: 'cuadrantes', label: 'Cuadrantes' },
+  { id: 'papeleo', label: 'Papeleo / oficina' },
+];
+
+const TIPOS_PAPELEO = ['Permiso oficial', 'Asuntos propios', 'Permiso por operación de familiar', 'Permiso extraordinario', 'Permiso de paternidad', 'Permiso de lactancia'];
+const TIPOS_CALENDARIO = ['Vacaciones', 'Asuntos propios', 'Permiso oficial', 'Permiso extraordinario', 'Otros permisos'];
+const FESTIVOS = ['01-01', '01-06', '05-01', '08-15', '10-12', '11-01', '12-06', '12-08', '12-25'];
+function isFestivo(iso) { return FESTIVOS.indexOf(iso.slice(5)) !== -1; }
+function buildYearCalendar(year, selectedSet, personPermisos) {
+  const months = [];
+  for (let m = 0; m < 12; m++) {
+    const first = new Date(year, m, 1);
+    const totalDays = new Date(year, m + 1, 0).getDate();
+    const leadBlanks = (first.getDay() + 6) % 7;
+    const cells = [];
+    for (let i = 0; i < leadBlanks; i++) cells.push(null);
+    for (let d = 1; d <= totalDays; d++) {
+      const dt = new Date(year, m, d);
+      const iso = isoDate(year, m, d);
+      const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+      const festivo = isFestivo(iso);
+      const existing = personPermisos.find(p => p.desde <= iso && p.hasta >= iso);
+      const selectable = !isWeekend && !festivo && !existing;
+      cells.push({ iso, day: d, isWeekend, festivo, existing, selectable, selected: !!selectedSet[iso] });
+    }
+    while (cells.length % 7 !== 0) cells.push(null);
+    const weeks = [];
+    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+    months.push({ label: MES_NOMBRES[m], weeks });
+  }
+  return months;
+}
+
+const SEED_DOCUMENTOS = [
+  { id: 1, titulo: 'Procedimiento de baja médica', categoria: 'Sanidad', seccionOrigen: 'S1', normativa: 'Orden DEF/2015, art. 12', fecha: '2026-03-10', tiposRelacionados: ['Otros permisos'] },
+  { id: 2, titulo: 'Solicitud de vacante / cambio de destino', categoria: 'Personal', seccionOrigen: 'S1', normativa: 'Instrucción 6/2020 del EMAD', fecha: '2026-02-18', tiposRelacionados: ['Otros permisos'] },
+  { id: 3, titulo: 'Normas de seguridad en polígono de tiro', categoria: 'Operaciones', seccionOrigen: 'S3', normativa: 'Norma General 4/2019', fecha: '2026-01-22', tiposRelacionados: [] },
+  { id: 4, titulo: 'Procedimiento de baja de material', categoria: 'Logística', seccionOrigen: 'S4', normativa: 'Orden DEF/2012, art. 8', fecha: '2026-05-02', tiposRelacionados: [] },
+  { id: 5, titulo: 'Protocolo de seguridad de la información', categoria: 'Inteligencia', seccionOrigen: 'S2', normativa: 'Directiva 3/2018 CNI-CCN', fecha: '2026-04-11', tiposRelacionados: [] },
+];
+
+const PAPELEO_SYSTEM_PROMPT = 'Eres un asistente de oficina de una unidad militar. Revisas solicitudes de permiso antes de que lleguen al personal administrativo, para que no pierdan tiempo con solicitudes incompletas o mal encajadas en el tipo elegido.\n\n' +
+  'Tipos de permiso que maneja esta unidad: Permiso oficial, Asuntos propios, Permiso por operación de familiar, Permiso extraordinario (máximo 10 días al año, concedido por los jefes según ejercicios o cursos), Permiso de paternidad, Permiso de lactancia.\n\n' +
+  'Te paso el tipo de permiso elegido y el texto de la solicitud tal cual la ha escrito el solicitante. Evalúa: (1) si el texto encaja con el tipo de permiso elegido o parece ser otro tipo; (2) si faltan datos imprescindibles (fechas concretas, motivo, duración); (3) si hay alguna incoherencia evidente (p. ej. un extraordinario que menciona más de 10 días). No inventes artículos de ley ni cifras que no te he dado — si no tienes el dato normativo exacto para algo, dilo explícitamente en vez de inventarlo.\n\n' +
+  'Responde SIEMPRE empezando por una primera línea exacta: "CUMPLE" o "REVISAR" (usa REVISAR si falta algo o hay dudas, nunca inventes que no cumple sin motivo). Después, 2-4 líneas explicando el motivo de forma breve y directa, y si aplica, qué falta o qué debería corregir el solicitante.';
+
+const MAT_TAG = { Operativo: 'tag-green', Condicional: 'tag-amber', Inoperativo: 'tag-red', 'En escalón': 'tag-accent', Baja: 'tag-neutral' };
+const PER_TAG = { Activo: 'tag-green', 'Curso / vacaciones': 'tag-neutral', Rebajado: 'tag-amber', 'Baja médica': 'tag-red' };
+const PERMISO_TAG = { pendiente_instancia1: 'tag-amber', pendiente_unidad: 'tag-amber', aprobado: 'tag-green', denegado: 'tag-red' };
+const PERMISO_LABEL = { pendiente_instancia1: 'Pendiente 1ª instancia', pendiente_unidad: 'Pendiente jefe de unidad', aprobado: 'Aprobado', denegado: 'Denegado' };
+
+const SEED_MATERIAL = [
+  { id: 1, codigo: 'FUS-0231', nombre: 'Fusil HK G36', tipo: 'Oficial', numeroSerie: 'EA-778213', seccion: 'S1', sub: null, estado: 'Operativo', responsable: 'Cabo Elena Ruiz', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 2, codigo: 'RAD-0110', nombre: 'Radio PRC-152', tipo: 'Oficial', numeroSerie: 'EA-330981', seccion: 'Transmisiones', sub: 'Radio', estado: 'Operativo', responsable: 'Cabo Iván Torres', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 3, codigo: 'RAD-0111', nombre: 'Radio PRC-152', tipo: 'Oficial', numeroSerie: 'EA-330982', seccion: 'Transmisiones', sub: 'Radio', estado: 'Inoperativo', responsable: 'Sold. Pablo Cruz', prestado: false, prestadoA: '', ubicacion: '', enRevision: true },
+  { id: 4, codigo: 'SAT-0042', nombre: 'Terminal satélite VSAT', tipo: 'Oficial', numeroSerie: 'EA-991042', seccion: 'Transmisiones', sub: 'Satélite', estado: 'Condicional', responsable: 'Sbtte. Diego Salas', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 5, codigo: 'RED-0087', nombre: 'Switch de campaña', tipo: 'Oficial', numeroSerie: 'EA-550187', seccion: 'Transmisiones', sub: 'Redes', estado: 'Operativo', responsable: 'Sold. Marta León', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 6, codigo: 'RED-0088', nombre: 'Router táctico', tipo: 'Oficial', numeroSerie: 'EA-550188', seccion: 'Transmisiones', sub: 'Redes', estado: 'Operativo', responsable: 'Cabo Julia Prieto', prestado: true, prestadoA: 'Batallón XI', ubicacion: 'Base Cerro Muriano', enRevision: false },
+  { id: 7, codigo: 'PLA-0015', nombre: 'Impresora de furrilería', tipo: 'Oficial', numeroSerie: 'EA-120015', seccion: 'Transmisiones', sub: 'Plana', estado: 'Baja', responsable: 'Sbtte. Rosa Vidal', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 8, codigo: 'VEH-0233', nombre: 'Vehículo BMR', tipo: 'Oficial', numeroSerie: 'EA-002233', seccion: 'Defensa contra carros', sub: null, estado: 'Operativo', responsable: 'Sold. Rubén Ortega', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 9, codigo: 'LAN-0005', nombre: 'Lanzagranadas', tipo: 'Oficial', numeroSerie: 'EA-780005', seccion: 'Defensa contra carros', sub: null, estado: 'En escalón', responsable: 'Sbtte. Diego Salas', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 10, codigo: 'OPT-0099', nombre: 'Visor térmico', tipo: 'Oficial', numeroSerie: 'EA-660099', seccion: 'Inteligencia', sub: null, estado: 'Operativo', responsable: 'Cabo Sara Molina', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 11, codigo: 'DRN-0012', nombre: 'Dron de reconocimiento', tipo: 'Oficial', numeroSerie: 'EA-660012', seccion: 'Inteligencia', sub: null, estado: 'En escalón', responsable: 'Cabo Sara Molina', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 12, codigo: 'INS-0301', nombre: 'Fusil de asalto', tipo: 'Oficial', numeroSerie: 'EA-778301', seccion: 'S2', sub: null, estado: 'Operativo', responsable: 'Tte. Marcos Ibáñez', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 13, codigo: 'VEH-0044', nombre: 'Camión logístico', tipo: 'Oficial', numeroSerie: 'EA-002044', seccion: 'S4', sub: null, estado: 'Operativo', responsable: 'Cabo Noelia Cabrera', prestado: true, prestadoA: 'S3', ubicacion: 'Parque móvil central', enRevision: false },
+  { id: 14, codigo: 'INST-0002', nombre: 'Trompeta de banda', tipo: 'Oficial', numeroSerie: 'EA-990002', seccion: 'Banda musical', sub: null, estado: 'Operativo', responsable: 'Sold. Daniel Vega', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 15, codigo: 'ORD-0450', nombre: 'Ordenador de plana mayor', tipo: 'Oficial', numeroSerie: 'EA-440450', seccion: 'Plana Mayor', sub: null, estado: 'Condicional', responsable: 'Cabo Laura Campos', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 16, codigo: 'CHAL-0771', nombre: 'Chaleco antibalas', tipo: 'Oficial', numeroSerie: 'EA-770771', seccion: 'S3', sub: null, estado: 'Operativo', responsable: 'Sold. Hugo Márquez', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 17, codigo: 'RAD-0112', nombre: 'Radio PRC-152', tipo: 'Oficial', numeroSerie: 'EA-330983', seccion: 'Transmisiones', sub: 'Radio', estado: 'Baja', responsable: 'Cap. Álvaro Nieto', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 18, codigo: 'GEN-0060', nombre: 'Generador eléctrico', tipo: 'Oficial', numeroSerie: 'EA-060060', seccion: 'S1', sub: null, estado: 'Inoperativo', responsable: 'Cabo Elena Ruiz', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 19, codigo: 'FUN-0501', nombre: 'Crimpadora RJ45', tipo: 'Fungible', numeroSerie: null, seccion: 'Transmisiones', sub: 'Redes', estado: 'Operativo', responsable: 'Sold. Marta León', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 20, codigo: 'FUN-0502', nombre: 'Cable de red (bobina)', tipo: 'Fungible', numeroSerie: null, seccion: 'Transmisiones', sub: 'Redes', estado: 'Operativo', responsable: 'Sold. Iker Sanz', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 21, codigo: 'FUN-0503', nombre: 'Cinta de carrocero', tipo: 'Fungible', numeroSerie: null, seccion: 'Transmisiones', sub: 'Redes', estado: 'Operativo', responsable: 'Sold. Marta León', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+  { id: 22, codigo: 'FUN-0504', nombre: 'Cabezales RJ45 (bolsa)', tipo: 'Fungible', numeroSerie: null, seccion: 'Transmisiones', sub: 'Redes', estado: 'Condicional', responsable: 'Sold. Iker Sanz', prestado: false, prestadoA: '', ubicacion: '', enRevision: false },
+];
+
+const SEED_CASOS = [
+  { id: 1, materialId: 3, stage: 'reportado', reportadoPor: 'Sold. Pablo Cruz', fecha: '2026-08-01' },
+  { id: 2, materialId: 11, stage: 'en_escalon', reportadoPor: 'Cabo Sara Molina', fecha: '2026-07-25', orden: 'OM-2026-014' },
+  { id: 3, materialId: 9, stage: 'en_reparacion', reportadoPor: 'Sbtte. Diego Salas', fecha: '2026-07-18', orden: 'OM-2026-011', lugar: 'Taller Regional Norte', transportista: 'Sbtte. Rosa Vidal' },
+];
+
+const SEED_PERSONAL = [
+  { id: 1, nombre: 'Cap. Elena Ruiz', rango: 'Oficial', antiguedad: 1, viveSealoj: false, seccion: 'S1', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 2, nombre: 'Tte. Marcos Ibáñez', rango: 'Oficial', antiguedad: 2, viveSealoj: false, seccion: 'S2', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 3, nombre: 'Sgto1º Diego Salas', rango: 'Sargento', antiguedad: 3, viveSealoj: false, seccion: 'Transmisiones', sub: 'Satélite', estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 4, nombre: 'Cabo Iván Torres', rango: 'Cabo', antiguedad: 4, viveSealoj: false, seccion: 'Transmisiones', sub: 'Radio', estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 5, nombre: 'Sold. Marta León', rango: 'Soldado', antiguedad: 12, viveSealoj: true, seccion: 'Transmisiones', sub: 'Redes', estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 6, nombre: 'Cabo Julia Prieto', rango: 'Cabo', antiguedad: 5, viveSealoj: false, seccion: 'Transmisiones', sub: 'Redes', estado: 'Curso / vacaciones', desde: '2026-07-20', hasta: '2026-08-20' },
+  { id: 7, nombre: 'Sold. Pablo Cruz', rango: 'Soldado', antiguedad: 13, viveSealoj: false, seccion: 'Transmisiones', sub: 'Radio', estado: 'Baja médica', desde: '2026-07-15', hasta: '2026-08-30' },
+  { id: 8, nombre: 'Sgto Rosa Vidal', rango: 'Sargento', antiguedad: 6, viveSealoj: false, seccion: 'Transmisiones', sub: 'Plana', estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 9, nombre: 'Cap. Álvaro Nieto', rango: 'Oficial', antiguedad: 7, viveSealoj: false, seccion: 'Transmisiones', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 27, nombre: 'Sold. Bruno Castell', rango: 'Soldado', antiguedad: 28, viveSealoj: false, seccion: 'Transmisiones', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 28, nombre: 'Sold. Alba Fuster', rango: 'Soldado', antiguedad: 29, viveSealoj: false, seccion: 'Transmisiones', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 29, nombre: 'Cabo Raúl Vega', rango: 'Cabo', antiguedad: 30, viveSealoj: false, seccion: 'Transmisiones', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 10, nombre: 'Sold. Hugo Márquez', rango: 'Soldado', antiguedad: 14, viveSealoj: false, seccion: 'S3', sub: null, estado: 'Rebajado', desde: '2026-07-01', hasta: '2026-09-01' },
+  { id: 11, nombre: 'Cabo Noelia Cabrera', rango: 'Cabo', antiguedad: 8, viveSealoj: false, seccion: 'S4', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 12, nombre: 'Sold. Rubén Ortega', rango: 'Soldado', antiguedad: 15, viveSealoj: false, seccion: 'Defensa contra carros', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 13, nombre: 'Cabo Sara Molina', rango: 'Cabo', antiguedad: 9, viveSealoj: false, seccion: 'Inteligencia', sub: null, estado: 'Curso / vacaciones', desde: '2026-08-05', hasta: '2026-08-12' },
+  { id: 14, nombre: 'Sold. Daniel Vega', rango: 'Soldado', antiguedad: 16, viveSealoj: true, seccion: 'Banda musical', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 15, nombre: 'Cabo Laura Campos', rango: 'Cabo', antiguedad: 10, viveSealoj: false, seccion: 'Plana Mayor', sub: null, estado: 'Baja médica', desde: '2026-06-01', hasta: '2026-08-15' },
+  { id: 16, nombre: 'Sold. Iker Sanz', rango: 'Soldado', antiguedad: 17, viveSealoj: true, seccion: 'Transmisiones', sub: 'Redes', estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 17, nombre: 'Sold. Diana Reyes', rango: 'Soldado', antiguedad: 18, viveSealoj: true, seccion: 'S1', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 18, nombre: 'Sold. Óscar Blanco', rango: 'Soldado', antiguedad: 19, viveSealoj: false, seccion: 'S2', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 19, nombre: 'Sold. Nuria Campos', rango: 'Soldado', antiguedad: 20, viveSealoj: true, seccion: 'S3', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 20, nombre: 'Sold. Adrián Silva', rango: 'Soldado', antiguedad: 21, viveSealoj: false, seccion: 'S4', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 21, nombre: 'Sold. Carla Ibarra', rango: 'Soldado', antiguedad: 22, viveSealoj: true, seccion: 'Inteligencia', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 22, nombre: 'Sold. Fernando Rus', rango: 'Soldado', antiguedad: 23, viveSealoj: false, seccion: 'Defensa contra carros', sub: null, estado: 'Curso / vacaciones', desde: '2026-08-08', hasta: '2026-08-18' },
+  { id: 23, nombre: 'Cabo Marcos Peña', rango: 'Cabo', antiguedad: 24, viveSealoj: false, seccion: 'Plana Mayor', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 24, nombre: 'Sold. Lucía Ferrer', rango: 'Soldado', antiguedad: 25, viveSealoj: false, seccion: 'Banda musical', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 25, nombre: 'Sold. Pablo Ibáñez', rango: 'Soldado', antiguedad: 26, viveSealoj: true, seccion: 'S2', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 26, nombre: 'Cabo Teresa Roig', rango: 'Cabo', antiguedad: 27, viveSealoj: false, seccion: 'S3', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 30, nombre: 'Sgto1º Vicente Amaro', rango: 'Sargento', antiguedad: 31, viveSealoj: false, seccion: 'S1', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+  { id: 31, nombre: 'Sgto Elisa Bravo', rango: 'Sargento', antiguedad: 32, viveSealoj: false, seccion: 'S4', sub: null, estado: 'Activo', desde: '-', hasta: '-' },
+];
+
+const SERVICIOS = [
+  { id: 'cabo_cuartel', label: 'Cabo cuartel', rango: 'Cabo', titulares: 1, suplentes: 1, requiereSealoj: false },
+  { id: 'cuartelero_batallon', label: 'Cuartelero de batallón', rango: 'Soldado', titulares: 1, suplentes: 1, requiereSealoj: false },
+  { id: 'cuartelero_vestuario', label: 'Cuartelero de vestuario', rango: 'Soldado', titulares: 1, suplentes: 1, requiereSealoj: false },
+  { id: 'limpieza_sealoj', label: 'Limpieza SEALOJ', rango: 'Soldado', titulares: 2, suplentes: 2, requiereSealoj: true },
+  { id: 'limpieza_base', label: 'Limpieza de base', rango: 'Soldado', titulares: 2, suplentes: 2, requiereSealoj: false },
+  { id: 'limpieza_lavadero', label: 'Limpieza de lavadero', rango: 'Soldado', titulares: 6, suplentes: 2, requiereSealoj: false },
+  { id: 'suboficial_cuartel', label: 'Suboficial de cuartel', rango: 'Sargento', titulares: 1, suplentes: 1, requiereSealoj: false, bloque: true },
+];
+
+const SEED_PERMISOS = [
+  { id: 1, persona: 'Sold. Marta León', tipo: 'Asuntos propios', dias: 2, desde: '2026-08-10', hasta: '2026-08-11', estado: 'pendiente_instancia1' },
+  { id: 2, persona: 'Cabo Iván Torres', tipo: 'Permiso oficial', dias: 5, desde: '2026-08-15', hasta: '2026-08-19', estado: 'pendiente_unidad' },
+  { id: 3, persona: 'Sold. Hugo Márquez', tipo: 'Permiso extraordinario', dias: 3, desde: '2026-08-20', hasta: '2026-08-22', estado: 'aprobado' },
+  { id: 4, persona: 'Cabo Julia Prieto', tipo: 'Asuntos propios', dias: 1, desde: '2026-08-05', hasta: '2026-08-05', estado: 'denegado' },
+  { id: 5, persona: 'Sold. Rubén Ortega', tipo: 'Permiso oficial', dias: 10, desde: '2026-09-01', hasta: '2026-09-10', estado: 'pendiente_instancia1' },
+  { id: 6, persona: 'Sbtte. Rosa Vidal', tipo: 'Asuntos propios', dias: 2, desde: '2026-08-25', hasta: '2026-08-26', estado: 'aprobado' },
+  { id: 7, persona: 'Sold. Iker Sanz', tipo: 'Permiso extraordinario', dias: 4, desde: '2026-08-30', hasta: '2026-09-02', estado: 'pendiente_unidad' },
+  { id: 8, persona: 'Sold. Marta León', tipo: 'Permiso oficial', dias: 5, desde: '2026-08-11', hasta: '2026-08-15', estado: 'aprobado' },
+];
+
+const MES_NOMBRES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const DIA_ABR = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+const ROTATION_EPOCH = new Date('2026-01-01T00:00:00');
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+function isoDate(y, m, d) { return y + '-' + pad2(m + 1) + '-' + pad2(d); }
+function buildMonthDays(year, month) {
+  const total = new Date(year, month + 1, 0).getDate();
+  const days = [];
+  for (let d = 1; d <= total; d++) {
+    const dt = new Date(year, month, d);
+    days.push({ iso: isoDate(year, month, d), label: DIA_ABR[dt.getDay()] + ' ' + d, offset: Math.round((dt - ROTATION_EPOCH) / 86400000), dateObj: dt });
+  }
+  return days;
+}
+function blockIndexOf(dateObj) {
+  const wd = dateObj.getDay();
+  let ordinal, weekMondayOffset;
+  if (wd === 1 || wd === 2) { ordinal = 0; weekMondayOffset = -(wd - 1); }
+  else if (wd === 3 || wd === 4) { ordinal = 1; weekMondayOffset = -(wd - 1); }
+  else if (wd === 5) { ordinal = 2; weekMondayOffset = -4; }
+  else if (wd === 6) { ordinal = 2; weekMondayOffset = -5; }
+  else { ordinal = 2; weekMondayOffset = -6; }
+  const weekMonday = new Date(dateObj.getTime() + weekMondayOffset * 86400000);
+  const weekNum = Math.floor((weekMonday - ROTATION_EPOCH) / (7 * 86400000));
+  return weekNum * 3 + ordinal;
+}
+function exentoPorPermisoVerano(nombre, permisos, rangeStart, rangeEnd) {
+  return permisos.some(p => p.persona === nombre && p.tipo === 'Permiso oficial' && p.estado === 'aprobado' && p.dias >= 5 &&
+    p.desde <= rangeEnd && p.hasta >= rangeStart);
+}
+
+function seccionLabel(seccion, sub) { return sub ? seccion + ' / ' + sub : seccion; }
+function slugUsuario(nombre) { return nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, '.').replace(/^\.+|\.+$/g, ''); }
+
+SEED_PERSONAL.forEach(p => { p.usuario = slugUsuario(p.nombre); p.password = 'Cambiar123'; p.cuentaCreada = false; });
+
+const HOME_ROLE_BY_RANGO = { Oficial: 'jefe_seccion', Sargento: 'suboficial', Cabo: 'cabo', Soldado: 'soldado' };
+const HOME_ROLE_OVERRIDE = { 1: 'jefe_unidad', 4: 'cabo', 29: 'cabo_acceso' };
+SEED_PERSONAL.forEach(p => { p.homeRole = HOME_ROLE_OVERRIDE[p.id] || HOME_ROLE_BY_RANGO[p.rango] || 'soldado'; });
+
+class Component extends DCLogic {
+  state = {
+    role: 'jefe_unidad',
+    screen: 'dashboard',
+    filterSection: null,
+    filterSub: null,
+    jefeSeccionSub: 'Redes',
+    cuadranteAnio: 2026,
+    cuadranteMes: 7,
+    material: SEED_MATERIAL,
+    casos: SEED_CASOS,
+    personal: SEED_PERSONAL,
+    permisos: SEED_PERMISOS,
+    nextCasoId: 4,
+    nextPermisoId: 8,
+    nextMaterialId: 23,
+    agregarDraft: { nombre: '', tipo: 'Oficial', numeroSerie: '', estado: 'Operativo' },
+    cuadranteFaltas: {},
+    cuadranteOverrides: {},
+    cuadranteEditAbierto: {},
+    modal: null,
+    modalTargetId: null,
+    reportarDraft: { estado: 'Condicional', descripcion: '' },
+    transportarDraft: { lugar: '', transportista: '' },
+    cerrarDraft: { resultado: 'Operativo' },
+    permisoDraft: { persona: '', tipo: 'Permiso oficial', desde: '', hasta: '' },
+    calAnio: 2026,
+    calSeleccion: {},
+    calTipo: 'Vacaciones',
+    calJustificacion: '',
+    calJustificanteDataUrl: '',
+    calJustificanteNombre: '',
+    documentos: SEED_DOCUMENTOS,
+    nextDocId: 6,
+    subirDraft: { titulo: '', categoria: '', normativa: '', archivoDataUrl: '', archivoNombre: '' },
+    docSearchQuery: '', docSearchLoading: false, docSearchIds: null, docSearchError: null,
+    docSeleccionadoId: null,
+    papeleoTipo: 'Permiso oficial',
+    papeleoTexto: '',
+    papeleoResultado: null,
+    papeleoLoading: false,
+    papeleoError: null,
+    perfilDraft: null,
+    loggedIn: false,
+    isAdminAccount: false,
+    authMode: 'login',
+    authUsuario: '',
+    authPassword: '',
+    authError: null,
+    primerPersonaId: '',
+    primerUsuario: '',
+    primerPassword: '',
+    primerSeccion: 'S1',
+    primerSub: '',
+    accessGrants: {},
+    grantPersonaId: '',
+    grantRole: 'jefe_unidad',
+  };
+
+  stopPropagation = (e) => e.stopPropagation();
+
+  setAuthMode = (mode) => this.setState({ authMode: mode, authError: null });
+  onAuthUsuario = (e) => this.setState({ authUsuario: e.target.value });
+  onAuthPassword = (e) => this.setState({ authPassword: e.target.value });
+  confirmLogin = () => {
+    const { authUsuario, authPassword } = this.state;
+    if (authUsuario.trim().toLowerCase() === 'admin' && authPassword === 'admin1') {
+      this.setState({ loggedIn: true, currentUserId: null, role: 'admin', isAdminAccount: true, authError: null, authUsuario: '', authPassword: '' });
+      return;
+    }
+    const p = this.state.personal.find(x => x.usuario === authUsuario.trim().toLowerCase() && x.password === authPassword);
+    if (!p) { this.setState({ authError: 'Usuario o contraseña incorrectos.' }); return; }
+    if (p.cuentaDesactivada) { this.setState({ authError: 'Esta cuenta ha sido desactivada. Contacta con el administrador.' }); return; }
+    this.setState({ loggedIn: true, currentUserId: p.id, role: p.homeRole, isAdminAccount: false, authError: null, authUsuario: '', authPassword: '' });
+  };
+  onPrimerPersona = (e) => this.setState({ primerPersonaId: e.target.value });
+  onPrimerUsuario = (e) => this.setState({ primerUsuario: e.target.value });
+  onPrimerPassword = (e) => this.setState({ primerPassword: e.target.value });
+  onPrimerSeccion = (e) => this.setState({ primerSeccion: e.target.value, primerSub: '' });
+  onPrimerSub = (e) => this.setState({ primerSub: e.target.value });
+  confirmPrimerAcceso = () => {
+    const { primerPersonaId, primerUsuario, primerPassword, primerSeccion, primerSub } = this.state;
+    if (!primerPersonaId || !primerUsuario.trim() || !primerPassword || !primerSeccion) { this.setState({ authError: 'Rellena todos los campos, incluida tu sección.' }); return; }
+    if (primerSeccion === 'Transmisiones' && !primerSub) { this.setState({ authError: 'Selecciona tu sub-sección dentro de Transmisiones.' }); return; }
+    const id = Number(primerPersonaId);
+    const usuario = primerUsuario.trim().toLowerCase();
+    const person = this.state.personal.find(p => p.id === id);
+    if (person && person.cuentaCreada) { this.setState({ authError: 'Esta persona ya tiene una cuenta creada. Si has olvidado el usuario o la contraseña, acude al administrador (jefe de unidad) para renovarlos.' }); return; }
+    if (this.state.personal.some(p => p.usuario === usuario && p.id !== id)) { this.setState({ authError: 'Ese usuario ya existe, elige otro.' }); return; }
+    this.setState(s => ({
+      personal: s.personal.map(p => p.id === id ? { ...p, usuario, password: primerPassword, seccion: primerSeccion, sub: primerSeccion === 'Transmisiones' ? primerSub : null, cuentaCreada: true } : p),
+      loggedIn: true, currentUserId: id, role: person.homeRole, authError: null, primerUsuario: '', primerPassword: '', primerPersonaId: '',
+    }));
+  };
+  logout = () => this.setState({ loggedIn: false, authMode: 'login' });
+
+  onGrantPersona = (e) => this.setState({ grantPersonaId: e.target.value });
+  onGrantRole = (e) => this.setState({ grantRole: e.target.value });
+  concederAcceso = () => {
+    const { grantPersonaId, grantRole } = this.state;
+    if (!grantPersonaId) return;
+    this.setState(s => ({ accessGrants: { ...s.accessGrants, [grantPersonaId]: grantRole }, grantPersonaId: '' }));
+  };
+  revocarAcceso = (personaId) => this.setState(s => { const g = { ...s.accessGrants }; delete g[personaId]; return { accessGrants: g }; });
+  desactivarCuenta = (id) => this.setState(s => ({ personal: s.personal.map(p => p.id === id ? { ...p, cuentaDesactivada: true } : p) }));
+  reactivarCuenta = (id) => this.setState(s => ({ personal: s.personal.map(p => p.id === id ? { ...p, cuentaDesactivada: false } : p) }));
+  closeModal = () => this.setState({ modal: null, modalTargetId: null });
+
+  setRole = (role) => {
+    if (this.state.role === 'admin') { this.setState({ role, filterSection: null, filterSub: null }); return; }
+    const currentPerson = this.state.personal.find(p => p.id === this.state.currentUserId);
+    const allowed = currentPerson ? [currentPerson.homeRole, this.state.accessGrants[currentPerson.id]].filter(Boolean) : [role];
+    if (allowed.indexOf(role) === -1) return;
+    const home = ROLE_HOME[role];
+    this.setState({ role, filterSection: home.section, filterSub: role === 'jefe_seccion' ? this.state.jefeSeccionSub : home.sub });
+  };
+  setScreen = (screen) => this.setState({ screen });
+  setJefeSeccionSub = (e) => this.setState({ jefeSeccionSub: e.target.value, filterSub: e.target.value });
+  incorporarPersona = (id) => this.setState(s => ({ personal: s.personal.map(p => p.id === id ? { ...p, sub: s.jefeSeccionSub } : p) }));
+
+  openPerfil = (id) => {
+    const p = this.state.personal.find(x => x.id === id);
+    this.setState({ modal: 'perfil', modalTargetId: id, perfilDraft: { usuario: p.usuario, password: p.password } });
+  };
+  onPerfilUsuario = (e) => this.setState(s => ({ perfilDraft: { ...s.perfilDraft, usuario: e.target.value } }));
+  onPerfilPassword = (e) => this.setState(s => ({ perfilDraft: { ...s.perfilDraft, password: e.target.value } }));
+  confirmPerfil = () => {
+    const id = this.state.modalTargetId;
+    const { usuario, password } = this.state.perfilDraft;
+    if (!usuario || !password) return;
+    this.setState(s => ({ personal: s.personal.map(p => p.id === id ? { ...p, usuario, password } : p) }));
+    this.closeModal();
+  };
+
+  onFilterSectionChange = (e) => this.setState({ filterSection: e.target.value === 'Todas' ? null : e.target.value, filterSub: null });
+  onFilterSubChange = (e) => this.setState({ filterSub: e.target.value === 'Todas' ? null : e.target.value });
+
+  openReportar = (materialId) => this.setState({ modal: 'reportar', modalTargetId: materialId, reportarDraft: { estado: 'Condicional', descripcion: '' } });
+  onReportarEstado = (e) => this.setState(s => ({ reportarDraft: { ...s.reportarDraft, estado: e.target.value } }));
+  onReportarDescripcion = (e) => this.setState(s => ({ reportarDraft: { ...s.reportarDraft, descripcion: e.target.value } }));
+  confirmReportar = () => {
+    const id = this.state.modalTargetId;
+    const estado = this.state.reportarDraft.estado;
+    const mat = this.state.material.find(m => m.id === id);
+    const home = ROLE_HOME[this.state.role];
+    const descripcion = this.state.reportarDraft.descripcion;
+    this.setState(s => ({
+      material: s.material.map(m => m.id === id ? { ...m, estado, enRevision: true } : m),
+      casos: [...s.casos, { id: s.nextCasoId, materialId: id, stage: 'reportado', reportadoPor: mat ? mat.responsable : (home ? home.label : ''), fecha: '2026-08-08', descripcion }],
+      nextCasoId: s.nextCasoId + 1,
+    }));
+    this.closeModal();
+  };
+
+  validarCaso = (casoId) => this.setState(s => ({ casos: s.casos.map(c => c.id === casoId ? { ...c, stage: 'en_escalon', orden: 'OM-2026-0' + (20 + casoId) } : c),
+    material: s.material.map(m => m.id === (s.casos.find(c => c.id === casoId) || {}).materialId ? { ...m, estado: 'En escalón', enRevision: false } : m) }));
+
+  descartarCaso = (casoId) => this.setState(s => {
+    const caso = s.casos.find(c => c.id === casoId);
+    return {
+      casos: s.casos.filter(c => c.id !== casoId),
+      material: s.material.map(m => m.id === (caso ? caso.materialId : null) ? { ...m, estado: 'Operativo', enRevision: false } : m),
+    };
+  });
+
+  openTransportar = (casoId) => this.setState({ modal: 'transportar', modalTargetId: casoId, transportarDraft: { lugar: '', transportista: '' } });
+  onTransportarLugar = (e) => this.setState(s => ({ transportarDraft: { ...s.transportarDraft, lugar: e.target.value } }));
+  onTransportarTransportista = (e) => this.setState(s => ({ transportarDraft: { ...s.transportarDraft, transportista: e.target.value } }));
+  confirmTransportar = () => {
+    const casoId = this.state.modalTargetId;
+    const { lugar, transportista } = this.state.transportarDraft;
+    this.setState(s => ({ casos: s.casos.map(c => c.id === casoId ? { ...c, stage: 'en_reparacion', lugar, transportista } : c) }));
+    this.closeModal();
+  };
+
+  openCerrar = (casoId) => this.setState({ modal: 'cerrar', modalTargetId: casoId, cerrarDraft: { resultado: 'Operativo', solucion: '' } });
+  onCerrarResultado = (e) => this.setState(s => ({ cerrarDraft: { ...s.cerrarDraft, resultado: e.target.value } }));
+  onCerrarSolucion = (e) => this.setState(s => ({ cerrarDraft: { ...s.cerrarDraft, solucion: e.target.value } }));
+  confirmCerrar = () => {
+    const casoId = this.state.modalTargetId;
+    const { resultado, solucion } = this.state.cerrarDraft;
+    this.setState(s => {
+      const caso = s.casos.find(c => c.id === casoId);
+      return {
+        casos: s.casos.map(c => c.id === casoId ? { ...c, stage: 'cerrado', resultado, solucion, fechaCierre: '2026-08-08' } : c),
+        material: s.material.map(m => m.id === (caso ? caso.materialId : null) ? { ...m, estado: resultado, enRevision: false } : m),
+      };
+    });
+    this.closeModal();
+  };
+
+  openAgregar = () => this.setState({ modal: 'agregar', editandoMaterialId: null, agregarDraft: { nombre: '', tipo: 'Oficial', numeroSerie: '', estado: 'Operativo' } });
+  onAgregarNombre = (e) => this.setState(s => ({ agregarDraft: { ...s.agregarDraft, nombre: e.target.value } }));
+  onAgregarTipo = (e) => this.setState(s => ({ agregarDraft: { ...s.agregarDraft, tipo: e.target.value, numeroSerie: e.target.value === 'Fungible' ? '' : s.agregarDraft.numeroSerie } }));
+  onAgregarNumeroSerie = (e) => this.setState(s => ({ agregarDraft: { ...s.agregarDraft, numeroSerie: e.target.value } }));
+  onAgregarEstado = (e) => this.setState(s => ({ agregarDraft: { ...s.agregarDraft, estado: e.target.value } }));
+  confirmAgregar = () => {
+    const d = this.state.agregarDraft;
+    if (!d.nombre) return;
+    const editId = this.state.editandoMaterialId;
+    if (editId != null) {
+      this.setState(s => ({ material: s.material.map(m => m.id === editId ? { ...m, nombre: d.nombre, tipo: d.tipo, numeroSerie: d.tipo === 'Oficial' ? (d.numeroSerie || '—') : null, estado: d.estado } : m) }));
+      this.closeModal();
+      return;
+    }
+    const home = ROLE_HOME[this.state.role];
+    const isSoldadoAdding = this.state.role === 'soldado';
+    this.setState(s => ({
+      material: [...s.material, {
+        id: s.nextMaterialId, codigo: 'NEW-' + s.nextMaterialId, nombre: d.nombre, tipo: d.tipo,
+        numeroSerie: d.tipo === 'Oficial' ? (d.numeroSerie || '—') : null,
+        seccion: s.filterSection || home.section || 'S1', sub: s.filterSub || home.sub || null, estado: d.estado, responsable: home.label,
+        prestado: false, prestadoA: '', ubicacion: '', enRevision: false,
+        creadoPorId: s.currentUserId, pendienteValidacion: isSoldadoAdding,
+      }],
+      nextMaterialId: s.nextMaterialId + 1,
+    }));
+    this.closeModal();
+  };
+  validarMaterialPendiente = (id) => this.setState(s => ({ material: s.material.map(m => m.id === id ? { ...m, pendienteValidacion: false } : m) }));
+  editarMaterialPropio = (id) => {
+    const it = this.state.material.find(m => m.id === id);
+    this.setState({ modal: 'agregar', editandoMaterialId: id, agregarDraft: { nombre: it.nombre, tipo: it.tipo, numeroSerie: it.numeroSerie || '', estado: it.estado } });
+  };
+  eliminarMaterialPropio = (id) => this.setState(s => ({ material: s.material.filter(m => m.id !== id) }));
+
+  openSolicitar = () => this.setState({ modal: 'solicitar', permisoDraft: { persona: ROLE_HOME[this.state.role].label, tipo: 'Permiso oficial', desde: '', hasta: '' } });
+  onPermisoPersona = (e) => this.setState(s => ({ permisoDraft: { ...s.permisoDraft, persona: e.target.value } }));
+  onPermisoTipo = (e) => this.setState(s => ({ permisoDraft: { ...s.permisoDraft, tipo: e.target.value } }));
+  onPermisoDesde = (e) => this.setState(s => ({ permisoDraft: { ...s.permisoDraft, desde: e.target.value } }));
+  onPermisoHasta = (e) => this.setState(s => ({ permisoDraft: { ...s.permisoDraft, hasta: e.target.value } }));
+  confirmSolicitar = () => {
+    const d = this.state.permisoDraft;
+    if (!d.persona || !d.desde || !d.hasta) return;
+    const dias = Math.max(1, Math.round((new Date(d.hasta) - new Date(d.desde)) / 86400000) + 1);
+    this.setState(s => ({
+      permisos: [...s.permisos, { id: s.nextPermisoId, persona: d.persona, tipo: d.tipo, dias, desde: d.desde, hasta: d.hasta, estado: 'pendiente_instancia1' }],
+      nextPermisoId: s.nextPermisoId + 1,
+    }));
+    this.closeModal();
+  };
+
+  calPrevAnio = () => this.setState(s => ({ calAnio: s.calAnio - 1 }));
+  calNextAnio = () => this.setState(s => ({ calAnio: s.calAnio + 1 }));
+  toggleCalDia = (iso) => this.setState(s => { const sel = { ...s.calSeleccion }; if (sel[iso]) delete sel[iso]; else sel[iso] = true; return { calSeleccion: sel }; });
+  setCalTipo = (e) => this.setState({ calTipo: e.target.value });
+  setCalJustificacion = (e) => this.setState({ calJustificacion: e.target.value });
+  onCalJustificanteArchivo = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => this.setState({ calJustificanteDataUrl: reader.result, calJustificanteNombre: file.name });
+    reader.readAsDataURL(file);
+  };
+  limpiarSeleccionCal = () => this.setState({ calSeleccion: {}, calJustificacion: '', calJustificanteDataUrl: '', calJustificanteNombre: '' });
+  confirmSolicitudCalendario = () => {
+    const { calSeleccion, calTipo, calJustificacion, calJustificanteDataUrl, calJustificanteNombre, personal, permisos } = this.state;
+    const dias = Object.keys(calSeleccion).sort();
+    if (dias.length === 0) return;
+    const currentPerson = personal.find(p => p.id === this.state.currentUserId);
+    const personaNombre = currentPerson ? currentPerson.nombre : ROLE_HOME[this.state.role].label;
+    if (calTipo === 'Permiso extraordinario') {
+      if (!calJustificacion.trim()) { this.setState({ authError: null, calError: 'La justificación es obligatoria para el permiso extraordinario.' }); return; }
+      const yaUsados = permisos.filter(p => p.persona === personaNombre && p.tipo === 'Permiso extraordinario' && p.estado !== 'denegado').reduce((sum, p) => sum + p.dias, 0);
+      if (yaUsados + dias.length > 10) { this.setState({ calError: 'Supera el máximo de 10 días al año de permiso extraordinario (ya usados: ' + yaUsados + ').' }); return; }
+    }
+    const bloques = [];
+    let bloque = [dias[0]];
+    for (let i = 1; i < dias.length; i++) {
+      const prev = new Date(dias[i - 1]), cur = new Date(dias[i]);
+      if ((cur - prev) / 86400000 === 1) bloque.push(dias[i]);
+      else { bloques.push(bloque); bloque = [dias[i]]; }
+    }
+    bloques.push(bloque);
+    this.setState(s => {
+      let nextId = s.nextPermisoId;
+      const nuevos = bloques.map(b => ({ id: nextId++, persona: personaNombre, tipo: calTipo, dias: b.length, desde: b[0], hasta: b[b.length - 1], estado: 'pendiente_instancia1', justificacion: calTipo === 'Permiso extraordinario' ? calJustificacion : undefined, justificanteDataUrl: calJustificanteDataUrl || undefined, justificanteNombre: calJustificanteNombre || undefined }));
+      return { permisos: [...s.permisos, ...nuevos], nextPermisoId: nextId, calSeleccion: {}, calJustificacion: '', calJustificanteDataUrl: '', calJustificanteNombre: '', calError: null };
+    });
+  };
+  seleccionarDocumento = (id) => this.setState(s => {
+    const doc = s.documentos.find(d => d.id === id);
+    const nuevoTipo = doc && doc.tiposRelacionados && doc.tiposRelacionados.length ? doc.tiposRelacionados[0] : s.calTipo;
+    return { docSeleccionadoId: id, calTipo: nuevoTipo };
+  });
+  quitarDocumentoSeleccionado = () => this.setState({ docSeleccionadoId: null });
+  onDocSearchQuery = (e) => this.setState({ docSearchQuery: e.target.value });
+  limpiarBusquedaDoc = () => this.setState({ docSearchQuery: '', docSearchIds: null, docSearchError: null });
+  buscarDocumentoIA = async () => {
+    const query = this.state.docSearchQuery.trim();
+    if (!query) return;
+    this.setState({ docSearchLoading: true, docSearchError: null, docSearchIds: null });
+    const lista = this.state.documentos.map(d => d.id + ': ' + d.titulo + ' (' + d.categoria + ') — ' + d.normativa).join('\n');
+    try {
+      const text = await window.claude.complete({
+        system: 'Tienes esta lista de documentos disponibles en una oficina militar:\n' + lista + '\n\nEl usuario describe en lenguaje natural qué documento busca. Devuelve SOLO los ids numéricos de los documentos relevantes, separados por comas, sin ningún texto adicional. Si ninguno encaja, responde exactamente NINGUNO.',
+        messages: [{ role: 'user', content: query }],
+      });
+      const clean = text.trim();
+      const ids = clean.toUpperCase() === 'NINGUNO' ? [] : clean.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+      this.setState({ docSearchIds: ids, docSearchLoading: false });
+    } catch (err) {
+      this.setState({ docSearchError: 'No se pudo completar la búsqueda. Inténtalo de nuevo.', docSearchLoading: false });
+    }
+  };
+
+  openSubirDocumento = () => this.setState({ modal: 'subir_doc', subirDraft: { titulo: '', categoria: '', normativa: '', archivoDataUrl: '', archivoNombre: '' } });
+  onSubirTitulo = (e) => this.setState(s => ({ subirDraft: { ...s.subirDraft, titulo: e.target.value } }));
+  onSubirCategoria = (e) => this.setState(s => ({ subirDraft: { ...s.subirDraft, categoria: e.target.value } }));
+  onSubirNormativa = (e) => this.setState(s => ({ subirDraft: { ...s.subirDraft, normativa: e.target.value } }));
+  onSubirArchivo = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => this.setState(s => ({ subirDraft: { ...s.subirDraft, archivoDataUrl: reader.result, archivoNombre: file.name } }));
+    reader.readAsDataURL(file);
+  };
+  confirmSubirDocumento = () => {
+    const { titulo, categoria, normativa, archivoDataUrl, archivoNombre } = this.state.subirDraft;
+    if (!titulo.trim()) return;
+    const currentPerson = this.state.personal.find(p => p.id === this.state.currentUserId);
+    const seccionOrigen = currentPerson ? currentPerson.seccion : 'S1';
+    this.setState(s => ({
+      documentos: [...s.documentos, { id: s.nextDocId, titulo, categoria: categoria || 'General', normativa: normativa || 'Sin referencia normativa', seccionOrigen, fecha: '2026-08-09', archivoDataUrl, archivoNombre }],
+      nextDocId: s.nextDocId + 1,
+    }));
+    this.closeModal();
+  };
+
+  onPapeleoTipo = (e) => this.setState({ papeleoTipo: e.target.value });
+  onPapeleoTexto = (e) => this.setState({ papeleoTexto: e.target.value });
+  revisarPapeleo = async () => {
+    if (!this.state.papeleoTexto.trim()) return;
+    this.setState({ papeleoLoading: true, papeleoResultado: null, papeleoError: null });
+    try {
+      const text = await window.claude.complete({
+        system: PAPELEO_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: 'Tipo de permiso elegido: ' + this.state.papeleoTipo + '\n\nTexto de la solicitud:\n' + this.state.papeleoTexto }],
+      });
+      this.setState({ papeleoResultado: text, papeleoLoading: false });
+    } catch (err) {
+      this.setState({ papeleoError: 'No se pudo completar la revisión. Inténtalo de nuevo.', papeleoLoading: false });
+    }
+  };
+
+  aprobarPermiso = (id) => this.setState(s => ({ permisos: s.permisos.map(p => p.id === id ? { ...p, estado: p.estado === 'pendiente_instancia1' ? 'pendiente_unidad' : 'aprobado' } : p) }));
+  denegarPermiso = (id) => this.setState(s => ({ permisos: s.permisos.map(p => p.id === id ? { ...p, estado: 'denegado' } : p) }));
+  cancelarPermiso = (id) => this.setState(s => ({ permisos: s.permisos.filter(p => p.id !== id) }));
+
+  toggleFalta = (key) => this.setState(s => ({ cuadranteFaltas: { ...s.cuadranteFaltas, [key]: !s.cuadranteFaltas[key] } }));
+  setOverride = (key, personId) => this.setState(s => ({ cuadranteOverrides: { ...s.cuadranteOverrides, [key]: personId === '' ? undefined : Number(personId) } }));
+  toggleEditAbierto = (svcId) => this.setState(s => ({ cuadranteEditAbierto: { ...s.cuadranteEditAbierto, [svcId]: !s.cuadranteEditAbierto[svcId] } }));
+  prevMes = () => this.setState(s => s.cuadranteMes === 0 ? { cuadranteMes: 11, cuadranteAnio: s.cuadranteAnio - 1 } : { cuadranteMes: s.cuadranteMes - 1 });
+  nextMes = () => this.setState(s => s.cuadranteMes === 11 ? { cuadranteMes: 0, cuadranteAnio: s.cuadranteAnio + 1 } : { cuadranteMes: s.cuadranteMes + 1 });
+
+  renderVals() {
+    const { role, screen, material, casos, personal, permisos, modal, modalTargetId, reportarDraft, transportarDraft, cerrarDraft, permisoDraft, cuadranteAsignaciones, cuadrantePublicado } = this.state;
+    let { filterSection, filterSub } = this.state;
+    const home = ROLE_HOME[role];
+    const isAdmin = role === 'admin';
+    const loggedPerson = personal.find(p => p.id === this.state.currentUserId);
+    const sectionLocked = role !== 'jefe_unidad' && !isAdmin;
+    const subLocked = role !== 'jefe_unidad' && role !== 'jefe_seccion' && !isAdmin;
+    if (loggedPerson && sectionLocked) {
+      filterSection = loggedPerson.seccion;
+      if (subLocked) filterSub = loggedPerson.sub;
+    }
+
+    const currentPerson = personal.find(p => p.id === this.state.currentUserId);
+    const grantedRole = currentPerson ? this.state.accessGrants[currentPerson.id] : null;
+    const allowedRoles = currentPerson ? [currentPerson.homeRole].concat(grantedRole ? [grantedRole] : []) : Object.keys(ROLE_HOME);
+    const roleOptions = allowedRoles.filter((v, i, arr) => arr.indexOf(v) === i).map(key => ({ label: ROLE_HOME[key].label, checked: role === key, onSelect: () => this.setRole(key) }));
+
+    const isJefeUnidad = role === 'jefe_unidad' || isAdmin;
+    const grantRoleOptions = Object.keys(ROLE_HOME).filter(k => k !== 'jefe_unidad').map(k => ({ value: k, label: ROLE_HOME[k].label }));
+    const grantPersonaOptions = [{ value: '', label: 'Selecciona persona...' }].concat(personal.filter(p => p.id !== (currentPerson ? currentPerson.id : null)).map(p => ({ value: String(p.id), label: p.nombre + ' (' + ROLE_HOME[p.homeRole].label + ')' })));
+    const grantsList = Object.keys(this.state.accessGrants).map(pid => {
+      const p = personal.find(x => x.id === Number(pid));
+      return { nombre: p ? p.nombre : '—', roleLabel: ROLE_HOME[this.state.accessGrants[pid]].label, onRevocar: () => this.revocarAcceso(pid) };
+    });
+    const navItems = NAV_SCREENS.map(n => {
+      const active = screen === n.id;
+      const style = active ? ('background:var(--color-accent-100); color:var(--color-accent-800); font-weight:600;') : ('background:transparent; color:var(--color-text);');
+      return { label: n.label, onClick: () => this.setScreen(n.id), desktopStyle: 'text-align:left; border:none; padding:8px 12px; cursor:pointer; font-family:var(--font-body); font-size:14px; ' + style, mobileStyle: active ? 'border-color:var(--color-accent); background:var(--color-accent); color:var(--color-bg);' : '' };
+    });
+
+    const sectionOptions = [{ value: 'Todas', label: 'Todas' }].concat(SECCIONES.map(s => ({ value: s, label: s })));
+    const showSubFilter = filterSection === 'Transmisiones' || (role !== 'jefe_unidad' && home.section === 'Transmisiones');
+    const subOptions = [{ value: 'Todas', label: 'Todas' }].concat(SUBSECCIONES.map(s => ({ value: s, label: s })));
+
+    const breadcrumbParts = ['Batallón CG IX'];
+    if (filterSection) breadcrumbParts.push(filterSection); else breadcrumbParts.push('Todas las secciones');
+    if (filterSub) breadcrumbParts.push(filterSub);
+    const breadcrumb = breadcrumbParts.join(' › ');
+
+    const matchesFilter = (seccion, sub) => (!filterSection || seccion === filterSection) && (!filterSub || sub === filterSub);
+    const filteredMaterial = material.filter(m => matchesFilter(m.seccion, m.sub));
+
+    const activeCasoByMaterial = {};
+    casos.forEach(c => { if (c.stage !== 'cerrado') activeCasoByMaterial[c.materialId] = c; });
+
+    const materialRows = filteredMaterial.map(m => ({
+      ...m,
+      seccionLabel: seccionLabel(m.seccion, m.sub),
+      tipoNumeroLabel: m.tipo + (m.numeroSerie ? ' · Nº ' + m.numeroSerie : ' · sin serie'),
+      tagClass: MAT_TAG[m.estado] || 'tag-neutral',
+      canReportar: (role === 'soldado' || role === 'cabo' || role === 'cabo_acceso' || isAdmin) && !activeCasoByMaterial[m.id] && m.estado !== 'Baja',
+      onReportar: () => this.openReportar(m.id),
+      pendienteValidacion: !!m.pendienteValidacion,
+      canValidarMaterial: !!m.pendienteValidacion && (role === 'cabo' || role === 'cabo_acceso' || role === 'suboficial' || isAdmin),
+      onValidarMaterial: () => this.validarMaterialPendiente(m.id),
+      esMio: loggedPerson ? m.creadoPorId === loggedPerson.id : false,
+      onEditarPropio: () => this.editarMaterialPropio(m.id),
+      onEliminarPropio: () => this.eliminarMaterialPropio(m.id),
+    }));
+    const canAgregarMaterial = role === 'soldado' || role === 'cabo' || role === 'cabo_acceso' || isAdmin;
+
+    const matStats = {
+      total: filteredMaterial.length,
+      operativo: filteredMaterial.filter(m => m.estado === 'Operativo').length,
+      condicional: filteredMaterial.filter(m => m.estado === 'Condicional').length,
+      inoperativoBaja: filteredMaterial.filter(m => m.estado === 'Inoperativo' || m.estado === 'Baja').length,
+    };
+    const matOperativoPct = matStats.total ? Math.round((matStats.operativo / matStats.total) * 100) : 0;
+    const matDonutStyle = 'width:112px; height:112px; border-radius:50%; flex:none; background:conic-gradient(var(--color-accent) 0 ' + matOperativoPct + '%, var(--color-neutral-300) ' + matOperativoPct + '% 100%);';
+    const matAlerts = [];
+    const inopCount = filteredMaterial.filter(m => m.estado === 'Inoperativo').length;
+    const bajaCount = filteredMaterial.filter(m => m.estado === 'Baja').length;
+    if (inopCount > 0) matAlerts.push({ tagClass: 'tag-red', tagLabel: 'Inoperativo', text: inopCount + ' material(es) inoperativo(s) pendiente(s) de resolución.' });
+    if (bajaCount > 0) matAlerts.push({ tagClass: 'tag-neutral', tagLabel: 'Baja', text: bajaCount + ' material(es) de baja sin sustituir.' });
+
+    const casosVisibles = role === 'soldado'
+      ? casos.filter(c => { const mat = material.find(m => m.id === c.materialId); return mat && loggedPerson && mat.seccion === loggedPerson.seccion && mat.sub === loggedPerson.sub; })
+      : casos;
+    const casoRows = casosVisibles.filter(c => c.stage !== 'cerrado').map(c => {
+      const mat = material.find(m => m.id === c.materialId) || {};
+      const stageLabel = c.stage === 'reportado' ? 'Reportado' : c.stage === 'en_escalon' ? 'En escalón' : 'En reparación';
+      const stageTagClass = c.stage === 'reportado' ? 'tag-red' : 'tag-accent';
+      let detail = '';
+      if (c.stage === 'en_escalon' && c.orden) detail = 'Orden ' + c.orden + ' abierta.';
+      if (c.stage === 'en_reparacion') detail = (c.orden ? 'Orden ' + c.orden + '. ' : '') + 'En ' + (c.lugar || '—') + ', transportado por ' + (c.transportista || '—') + '.';
+      return {
+        codigo: mat.codigo, nombre: mat.nombre, seccionLabel: seccionLabel(mat.seccion, mat.sub),
+        reportadoPor: c.reportadoPor, fecha: c.fecha, stageLabel, stageTagClass, hasDetail: !!detail, detail,
+        canValidar: (role === 'suboficial' || isAdmin) && c.stage === 'reportado',
+        canTransportar: (role === 'suboficial' || isAdmin) && c.stage === 'en_escalon',
+        canCerrar: (role === 'suboficial' || isAdmin) && c.stage === 'en_reparacion',
+        onValidar: () => this.validarCaso(c.id),
+        onDescartar: () => this.descartarCaso(c.id),
+        onTransportar: () => this.openTransportar(c.id),
+        onCerrar: () => this.openCerrar(c.id),
+      };
+    });
+    const cerradoRows = casosVisibles.filter(c => c.stage === 'cerrado').map(c => {
+      const mat = material.find(m => m.id === c.materialId) || {};
+      return {
+        codigo: mat.codigo, nombre: mat.nombre, resultado: c.resultado, resultadoTagClass: c.resultado === 'Operativo' ? 'tag-green' : 'tag-neutral',
+        fecha: c.fecha, fechaCierre: c.fechaCierre || '—', problema: c.descripcion || 'Sin descripción registrada.', solucion: c.solucion || 'Sin detalle registrado.',
+      };
+    });
+
+    const isJefeSeccion = role === 'jefe_seccion' && !!loggedPerson && loggedPerson.seccion === 'Transmisiones';
+    const pendientesIncorporar = isJefeSeccion ? personal.filter(p => p.seccion === 'Transmisiones' && !p.sub && p.rango !== 'Oficial').map(p => ({
+      nombre: p.nombre, onIncorporar: () => this.incorporarPersona(p.id),
+    })) : [];
+    const filteredPersonal = personal.filter(p => matchesFilter(p.seccion, p.sub));
+    const isJefeUnidadForPerfil = role === 'jefe_unidad' || isAdmin;
+    const personalRows = filteredPersonal.map(p => ({ ...p, seccionLabel: seccionLabel(p.seccion, p.sub), tagClass: PER_TAG[p.estado] || 'tag-neutral', antiguedadLabel: p.rango + ' · antigüedad ' + p.antiguedad, onPerfil: () => this.openPerfil(p.id), canRenovarPerfil: isJefeUnidadForPerfil,
+      cuentaDesactivada: !!p.cuentaDesactivada,
+      onToggleCuenta: p.cuentaDesactivada ? () => this.reactivarCuenta(p.id) : () => this.desactivarCuenta(p.id),
+      toggleCuentaLabel: p.cuentaDesactivada ? 'Reactivar cuenta' : 'Dar de baja', canGestionarCuenta: isJefeUnidadForPerfil }));
+    const perStats = {
+      total: filteredPersonal.length,
+      activo: filteredPersonal.filter(p => p.estado === 'Activo').length,
+      curso: filteredPersonal.filter(p => p.estado === 'Curso / vacaciones').length,
+      rebajado: filteredPersonal.filter(p => p.estado === 'Rebajado').length,
+    };
+    const perOperativoPct = perStats.total ? Math.round((perStats.activo / perStats.total) * 100) : 0;
+    const perDonutStyle = 'width:112px; height:112px; border-radius:50%; flex:none; background:conic-gradient(var(--color-accent) 0 ' + perOperativoPct + '%, var(--color-neutral-300) ' + perOperativoPct + '% 100%);';
+    const perAlerts = [];
+    const bajaMedCount = filteredPersonal.filter(p => p.estado === 'Baja médica').length;
+    const rebajadoCount = filteredPersonal.filter(p => p.estado === 'Rebajado').length;
+    if (bajaMedCount > 0) perAlerts.push({ tagClass: 'tag-red', tagLabel: 'Baja médica', text: bajaMedCount + ' persona(s) de baja médica, no disponible(s) para servicio.' });
+    if (rebajadoCount > 0) perAlerts.push({ tagClass: 'tag-amber', tagLabel: 'Rebajado', text: rebajadoCount + ' persona(s) rebajada(s): revisar restricciones antes de asignar servicio.' });
+
+    const canActInstancia1 = role === 'suboficial' || role === 'jefe_seccion' || isAdmin;
+    const canActInstancia2 = role === 'jefe_unidad' || isAdmin;
+    const personByName = (nombre) => personal.find(p => p.nombre === nombre);
+    let permisosVisibles;
+    if (this.state.isAdminAccount || role === 'jefe_unidad') permisosVisibles = permisos;
+    else if (loggedPerson && ['S1', 'S2', 'S3', 'S4'].indexOf(loggedPerson.seccion) !== -1) permisosVisibles = permisos;
+    else if (role === 'jefe_seccion' && loggedPerson) permisosVisibles = permisos.filter(p => { const per = personByName(p.persona); return per && per.seccion === loggedPerson.seccion; });
+    else if (role === 'suboficial' && loggedPerson) permisosVisibles = permisos.filter(p => { const per = personByName(p.persona); return per && per.seccion === loggedPerson.seccion && per.sub === loggedPerson.sub; });
+    else permisosVisibles = permisos.filter(p => p.persona === (loggedPerson ? loggedPerson.nombre : ''));
+
+    const permisoRows = permisosVisibles.map(p => ({
+      persona: p.persona, tipo: p.tipo, dias: p.dias, rango: p.desde + ' → ' + p.hasta,
+      estadoLabel: PERMISO_LABEL[p.estado], tagClass: PERMISO_TAG[p.estado],
+      canAct: (p.estado === 'pendiente_instancia1' && canActInstancia1) || (p.estado === 'pendiente_unidad' && canActInstancia2),
+      onAprobar: () => this.aprobarPermiso(p.id), onDenegar: () => this.denegarPermiso(p.id),
+      hasJustificante: !!p.justificanteDataUrl, justificanteDataUrl: p.justificanteDataUrl || '', justificanteNombre: p.justificanteNombre || '',
+      canCancelar: p.estado.indexOf('pendiente') === 0 && loggedPerson && p.persona === loggedPerson.nombre,
+      onCancelar: () => this.cancelarPermiso(p.id),
+    }));
+
+    const cuadranteAnio = this.state.cuadranteAnio, cuadranteMes = this.state.cuadranteMes;
+    const diasDelMes = buildMonthDays(cuadranteAnio, cuadranteMes);
+    const cuadranteDias = diasDelMes.map(d => ({ label: d.label }));
+    const cuadranteMesLabel = MES_NOMBRES[cuadranteMes] + ' ' + cuadranteAnio;
+    const rangeStart = diasDelMes[0].iso, rangeEnd = diasDelMes[diasDelMes.length - 1].iso;
+    const cuadranteFaltas = this.state.cuadranteFaltas;
+    const servicioCards = SERVICIOS.map(svc => {
+      const pool = personal
+        .filter(p => p.rango === svc.rango && p.estado === 'Activo' && (!svc.requiereSealoj || p.viveSealoj) && !exentoPorPermisoVerano(p.nombre, permisos, rangeStart, rangeEnd))
+        .sort((a, b) => a.antiguedad - b.antiguedad);
+      const n = pool.length;
+      const canEdit = role === 'cabo_acceso' || isAdmin;
+      const cuadranteOverrides = this.state.cuadranteOverrides;
+      const dayData = diasDelMes.map(day => {
+        const off = svc.bloque ? blockIndexOf(day.dateObj) : day.offset;
+        const titularSlots = [];
+        for (let s = 0; s < svc.titulares; s++) {
+          const key = svc.id + '_' + day.iso + '_' + s;
+          const overrideId = cuadranteOverrides[key];
+          const overrideIdx = overrideId != null ? pool.findIndex(p => p.id === overrideId) : -1;
+          const idx = overrideIdx !== -1 ? overrideIdx : (n ? (((off * svc.titulares + s) % n) + n) % n : -1);
+          titularSlots.push({ idx, slot: s, falta: !!cuadranteFaltas[key], key });
+        }
+        const imaginariaSlots = [];
+        for (let s = 0; s < svc.suplentes; s++) {
+          imaginariaSlots.push(n ? (((off * svc.titulares + svc.titulares + s) % n) + n) % n : -1);
+        }
+        return { titularSlots, imaginariaSlots };
+      });
+      const grid = pool.map((person, p) => {
+        const cells = dayData.map(dd => {
+          const asTitular = dd.titularSlots.find(t => t.idx === p);
+          if (asTitular && !asTitular.falta) return { mark: 'S', key: asTitular.key, clickable: canEdit, cellStyle: 'background:var(--color-accent); color:var(--color-bg); font-weight:700;' };
+          if (asTitular && asTitular.falta) return { mark: 'F', key: asTitular.key, clickable: canEdit, cellStyle: 'background:oklch(55% 0.16 25); color:#fff; font-weight:700; text-decoration:line-through;' };
+          const imagSlotIndex = dd.imaginariaSlots.indexOf(p);
+          if (imagSlotIndex !== -1) {
+            const promoted = dd.titularSlots.some((t, ti) => t.falta && (ti % svc.suplentes === imagSlotIndex));
+            return promoted
+              ? { mark: 'S*', key: null, clickable: false, cellStyle: 'background:var(--color-accent); color:var(--color-bg); font-weight:700;' }
+              : { mark: 'I', key: null, clickable: false, cellStyle: 'background:var(--color-accent-100); color:var(--color-accent-800); font-weight:600;' };
+          }
+          return { mark: '', key: null, clickable: false, cellStyle: '' };
+        });
+        return { nombre: person.nombre, cells, isMe: loggedPerson ? person.id === loggedPerson.id : false };
+      });
+      const gridWithToggle = grid.map(row => ({
+        ...row,
+        nombreStyle: row.isMe ? 'font-weight:700; color:var(--color-accent-800);' : '',
+        cells: row.cells.map(c => ({ ...c, onClick: c.clickable ? () => this.toggleFalta(c.key) : undefined })),
+      }));
+      const editOpen = !!this.state.cuadranteEditAbierto[svc.id];
+      const poolOptions = (canEdit && editOpen) ? [{ value: '', label: '(rotación automática)' }].concat(pool.map(p => ({ value: String(p.id), label: p.nombre }))) : [];
+      const editRows = (canEdit && editOpen) ? Array.from({ length: svc.titulares }, (_, s) => ({
+        label: svc.titulares > 1 ? 'Titular ' + (s + 1) : 'Titular',
+        cells: diasDelMes.map(day => {
+          const key = svc.id + '_' + day.iso + '_' + s;
+          const overrideId = cuadranteOverrides[key];
+          return { value: overrideId != null ? String(overrideId) : '', onChange: (e) => this.setOverride(key, e.target.value) };
+        }),
+      })) : [];
+      return { id: svc.id, label: svc.label, subtitle: svc.titulares + (svc.titulares > 1 ? ' titulares' : ' titular') + ' · ' + svc.suplentes + ' imaginaria(s)' + (svc.requiereSealoj ? ' · viven en SEALOJ' : '') + (svc.bloque ? ' · relevo lun-mié / mié-vie / vie-lun' : ''), grid: gridWithToggle, canEdit, poolSize: n, poolTooSmall: n < svc.titulares + svc.suplentes, poolOptions, editRows, editOpen, onToggleEdit: () => this.toggleEditAbierto(svc.id), editToggleLabel: editOpen ? 'Ocultar edición manual' : 'Editar manualmente' };
+    });
+    const excluidos = personal.filter(p => p.estado !== 'Activo').map(p => ({ nombre: p.nombre, estado: p.estado, tagClass: PER_TAG[p.estado] }))
+      .concat(personal.filter(p => p.estado === 'Activo' && exentoPorPermisoVerano(p.nombre, permisos, rangeStart, rangeEnd)).map(p => ({ nombre: p.nombre, estado: 'Permiso oficial (≥5 días)', tagClass: 'tag-accent' })));
+
+    const { agregarDraft } = this.state;
+    const targetMaterial = modal === 'reportar' ? material.find(m => m.id === modalTargetId)
+      : (modal === 'transportar' || modal === 'cerrar') ? material.find(m => m.id === (casos.find(c => c.id === modalTargetId) || {}).materialId)
+      : null;
+    const perfilPersona = modal === 'perfil' ? personal.find(p => p.id === modalTargetId) : null;
+    const { perfilDraft } = this.state;
+
+    const primerPersonaOptions = [{ value: '', label: 'Selecciona tu nombre...' }].concat(
+      this.state.personal.filter(p => !p.cuentaCreada).map(p => ({ value: String(p.id), label: p.nombre }))
+    );
+
+    return {
+      loggedIn: this.state.loggedIn,
+      isLoginScreenVisible: !this.state.loggedIn,
+      isLoginMode: this.state.authMode === 'login',
+      isPrimerMode: this.state.authMode === 'primer',
+      setLoginMode: () => this.setAuthMode('login'),
+      setPrimerMode: () => this.setAuthMode('primer'),
+      authUsuario: this.state.authUsuario, onAuthUsuario: this.onAuthUsuario,
+      authPassword: this.state.authPassword, onAuthPassword: this.onAuthPassword,
+      confirmLogin: this.confirmLogin,
+      hasAuthError: !!this.state.authError, authError: this.state.authError || '',
+      primerPersonaOptions, primerPersonaId: this.state.primerPersonaId, onPrimerPersona: this.onPrimerPersona,
+      primerSeccionOptions: SECCIONES.map(s => ({ value: s, label: s })),
+      primerSeccion: this.state.primerSeccion, onPrimerSeccion: this.onPrimerSeccion,
+      isPrimerTransmisiones: this.state.primerSeccion === 'Transmisiones',
+      primerSubOptions: [{ value: '', label: 'Selecciona...' }].concat(SUBSECCIONES.map(s => ({ value: s, label: s }))),
+      primerSub: this.state.primerSub, onPrimerSub: this.onPrimerSub,
+      primerUsuario: this.state.primerUsuario, onPrimerUsuario: this.onPrimerUsuario,
+      primerPassword: this.state.primerPassword, onPrimerPassword: this.onPrimerPassword,
+      confirmPrimerAcceso: this.confirmPrimerAcceso,
+      logout: this.logout,
+      notificacionesCount: (() => {
+        if (!loggedPerson) return 0;
+        const misPermisosNovedad = permisos.filter(p => p.persona === loggedPerson.nombre && (p.estado === 'aprobado' || p.estado === 'denegado')).length;
+        const misCasosNovedad = casos.filter(c => c.stage === 'cerrado' && material.find(m => m.id === c.materialId && m.creadoPorId === loggedPerson.id)).length;
+        return misPermisosNovedad + misCasosNovedad;
+      })(),
+      hasNotificaciones: (() => {
+        if (!loggedPerson) return false;
+        const misPermisosNovedad = permisos.filter(p => p.persona === loggedPerson.nombre && (p.estado === 'aprobado' || p.estado === 'denegado')).length;
+        const misCasosNovedad = casos.filter(c => c.stage === 'cerrado' && material.find(m => m.id === c.materialId && m.creadoPorId === loggedPerson.id)).length;
+        return (misPermisosNovedad + misCasosNovedad) > 0;
+      })(),
+      isJefeUnidad, grantRoleOptions, grantPersonaOptions, grantsList, hasGrants: grantsList.length > 0,
+      grantPersonaId: this.state.grantPersonaId, onGrantPersona: this.onGrantPersona,
+      grantRole: this.state.grantRole, onGrantRole: this.onGrantRole, concederAcceso: this.concederAcceso,
+      roleOptions, navItems, breadcrumb,
+      isDashboard: screen === 'dashboard', isMantenimiento: screen === 'mantenimiento', isPersonal: screen === 'personal', isPermisos: screen === 'permisos', isCuadrantes: screen === 'cuadrantes', isPapeleo: screen === 'papeleo',
+      papeleoTipos: TIPOS_PAPELEO.map(t => ({ value: t, label: t })), papeleoTipo: this.state.papeleoTipo, onPapeleoTipo: this.onPapeleoTipo,
+      papeleoTexto: this.state.papeleoTexto, onPapeleoTexto: this.onPapeleoTexto, revisarPapeleo: this.revisarPapeleo,
+      papeleoLoading: this.state.papeleoLoading, papeleoError: this.state.papeleoError,
+      papeleoDisabled: this.state.papeleoLoading || !this.state.papeleoTexto.trim(),
+      hasPapeleoResultado: !!this.state.papeleoResultado,
+      papeleoResultadoTexto: this.state.papeleoResultado || '',
+      papeleoTagClass: this.state.papeleoResultado && this.state.papeleoResultado.trim().toUpperCase().startsWith('CUMPLE') ? 'tag-green' : 'tag-amber',
+      papeleoTagLabel: this.state.papeleoResultado && this.state.papeleoResultado.trim().toUpperCase().startsWith('CUMPLE') ? 'Cumple' : 'Revisar',
+      hasPapeleoError: !!this.state.papeleoError,
+      documentosRows: (this.state.docSearchIds ? this.state.documentos.filter(d => this.state.docSearchIds.indexOf(d.id) !== -1) : this.state.documentos)
+        .map(d => ({ ...d, hasArchivo: !!d.archivoDataUrl, archivoLabel: d.archivoNombre || '', isSelected: d.id === this.state.docSeleccionadoId, seleccionarLabel: d.id === this.state.docSeleccionadoId ? 'Usado en tu solicitud ✓' : 'Usar para mi solicitud', onSeleccionar: () => this.seleccionarDocumento(d.id) })),
+      documentoSeleccionadoTitulo: (() => { const dd = this.state.documentos.find(d => d.id === this.state.docSeleccionadoId); return dd ? dd.titulo : ''; })(),
+      hasDocumentoSeleccionado: this.state.docSeleccionadoId != null,
+      quitarDocumentoSeleccionado: this.quitarDocumentoSeleccionado,
+      docSearchQuery: this.state.docSearchQuery, onDocSearchQuery: this.onDocSearchQuery,
+      buscarDocumentoIA: this.buscarDocumentoIA, limpiarBusquedaDoc: this.limpiarBusquedaDoc,
+      docSearchLoading: this.state.docSearchLoading, hasDocSearchError: !!this.state.docSearchError, docSearchError: this.state.docSearchError || '',
+      hasDocSearchActive: this.state.docSearchIds !== null,
+      docSearchDisabled: this.state.docSearchLoading || !this.state.docSearchQuery.trim(),
+      noDocResults: this.state.docSearchIds !== null && this.state.docSearchIds.length === 0,
+      canSubirDocumento: isAdmin || ['S1', 'S2', 'S3', 'S4'].indexOf(loggedPerson ? loggedPerson.seccion : '') !== -1,
+      openSubirDocumento: this.openSubirDocumento,
+      showSubirDoc: modal === 'subir_doc',
+      subirDraft: this.state.subirDraft, onSubirTitulo: this.onSubirTitulo, onSubirCategoria: this.onSubirCategoria, onSubirNormativa: this.onSubirNormativa,
+      onSubirArchivo: this.onSubirArchivo, hasSubirArchivo: !!this.state.subirDraft.archivoNombre, subirArchivoNombre: this.state.subirDraft.archivoNombre || '',
+      confirmSubirDocumento: this.confirmSubirDocumento,
+      filterSection: filterSection || 'Todas', filterSub: filterSub || 'Todas', sectionLocked, subLocked, sectionOptions, showSubFilter, subOptions,
+      onFilterSectionChange: this.onFilterSectionChange, onFilterSubChange: this.onFilterSubChange,
+      materialRows, matStats, matAlerts, hasMatAlerts: matAlerts.length > 0, canAgregarMaterial, openAgregar: this.openAgregar,
+      matOperativoPct, matDonutStyle, matNoOperativoPct: 100 - matOperativoPct,
+      showAgregar: modal === 'agregar', agregarDraft, isAgregarOficial: agregarDraft.tipo === 'Oficial',
+      onAgregarNombre: this.onAgregarNombre, onAgregarTipo: this.onAgregarTipo, onAgregarNumeroSerie: this.onAgregarNumeroSerie, onAgregarEstado: this.onAgregarEstado, confirmAgregar: this.confirmAgregar,
+      casoRows, hasCasos: casoRows.length > 0, noCasos: casoRows.length === 0, cerradoRows, hasCerrados: cerradoRows.length > 0,
+      personalRows, perStats, perAlerts, hasPerAlerts: perAlerts.length > 0,
+      isJefeSeccion, jefeSeccionSub: this.state.jefeSeccionSub, onJefeSeccionSub: this.setJefeSeccionSub,
+      subOptionsJefe: SUBSECCIONES.map(s => ({ value: s, label: s })),
+      pendientesIncorporar, hasPendientes: pendientesIncorporar.length > 0,
+      perOperativoPct, perDonutStyle, perNoOperativoPct: 100 - perOperativoPct,
+      permisoRows, openSolicitar: this.openSolicitar, isExtraordinario: permisoDraft.tipo === 'Permiso extraordinario',
+      calAnio: this.state.calAnio, calPrevAnio: this.calPrevAnio, calNextAnio: this.calNextAnio,
+      calMonths: (() => {
+        const currentPerson = personal.find(p => p.id === this.state.currentUserId);
+        const personaNombre = currentPerson ? currentPerson.nombre : ROLE_HOME[role].label;
+        const misPermisos = permisos.filter(p => p.persona === personaNombre && p.estado !== 'denegado');
+        return buildYearCalendar(this.state.calAnio, this.state.calSeleccion, misPermisos).map(month => ({
+          label: month.label,
+          weeks: month.weeks.map(week => ({
+            days: week.map(cell => {
+              if (!cell) return { blank: true, notBlank: false };
+              let statusClass = '';
+              if (cell.existing) statusClass = cell.existing.estado === 'aprobado' ? 'cal-aprobado' : cell.existing.estado === 'denegado' ? 'cal-denegado' : 'cal-pendiente';
+              else if (cell.festivo) statusClass = 'cal-festivo';
+              else if (cell.isWeekend) statusClass = 'cal-weekend';
+              else if (cell.selected) statusClass = 'cal-selected';
+              return {
+                blank: false, notBlank: true, day: cell.day, statusClass, selectable: cell.selectable,
+                cursorStyle: cell.selectable ? 'pointer' : 'default',
+                onClick: cell.selectable ? () => this.toggleCalDia(cell.iso) : undefined,
+              };
+            }),
+          })),
+        }));
+      })(),
+      calTiposOptions: (() => {
+        const doc = personal && this.state.documentos.find(d => d.id === this.state.docSeleccionadoId);
+        const lista = doc && doc.tiposRelacionados && doc.tiposRelacionados.length ? doc.tiposRelacionados : TIPOS_CALENDARIO;
+        return lista.map(t => ({ value: t, label: t }));
+      })(),
+      calTipo: this.state.calTipo, onCalTipo: this.setCalTipo,
+      isCalExtraordinario: this.state.calTipo === 'Permiso extraordinario',
+      calJustificacion: this.state.calJustificacion, onCalJustificacion: this.setCalJustificacion,
+      onCalJustificanteArchivo: this.onCalJustificanteArchivo,
+      hasCalJustificante: !!this.state.calJustificanteNombre, calJustificanteNombre: this.state.calJustificanteNombre || '',
+      calDiasSeleccionados: Object.keys(this.state.calSeleccion).sort(),
+      calNumDias: Object.keys(this.state.calSeleccion).length,
+      hasCalSeleccion: Object.keys(this.state.calSeleccion).length > 0,
+      hasCalError: !!this.state.calError, calError: this.state.calError || '',
+      limpiarSeleccionCal: this.limpiarSeleccionCal, confirmSolicitudCalendario: this.confirmSolicitudCalendario,
+      cuadranteDias, cuadranteMesLabel, servicioCards, excluidos, prevMes: this.prevMes, nextMes: this.nextMes,
+      closeModal: this.closeModal, stopPropagation: this.stopPropagation,
+      showReportar: modal === 'reportar', showTransportar: modal === 'transportar', showCerrar: modal === 'cerrar', showSolicitar: modal === 'solicitar',
+      modalMaterialName: targetMaterial ? (targetMaterial.codigo + ' — ' + targetMaterial.nombre) : '',
+      reportarDraft, onReportarEstado: this.onReportarEstado, onReportarDescripcion: this.onReportarDescripcion, confirmReportar: this.confirmReportar,
+      transportarDraft, onTransportarLugar: this.onTransportarLugar, onTransportarTransportista: this.onTransportarTransportista, confirmTransportar: this.confirmTransportar,
+      cerrarDraft, onCerrarResultado: this.onCerrarResultado, onCerrarSolucion: this.onCerrarSolucion, confirmCerrar: this.confirmCerrar,
+      permisoDraft, onPermisoPersona: this.onPermisoPersona, onPermisoTipo: this.onPermisoTipo, onPermisoDesde: this.onPermisoDesde, onPermisoHasta: this.onPermisoHasta, confirmSolicitar: this.confirmSolicitar,
+      showPerfil: modal === 'perfil', perfilPersonaNombre: perfilPersona ? perfilPersona.nombre : '',
+      perfilDraft: perfilDraft || { usuario: '', password: '' }, onPerfilUsuario: this.onPerfilUsuario, onPerfilPassword: this.onPerfilPassword, confirmPerfil: this.confirmPerfil,
+    };
+  }
+}
+</script>
+</body>
+</html>
