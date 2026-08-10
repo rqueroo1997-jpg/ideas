@@ -10,8 +10,15 @@ import {
   validarMaterialPendienteAction,
   type ActionState,
 } from "@/lib/actions/material";
+import { concederAccesoAction, revocarAccesoAction } from "@/lib/actions/personal";
 import { ScopeToolbar } from "../scope-toolbar";
 import type { ResolvedScope } from "@/lib/rbac";
+
+export interface GrantsPanelData {
+  personaOptions: { value: number; label: string }[];
+  roleOptions: { value: string; label: string }[];
+  grantsList: { personaId: number; nombre: string; roleLabel: string }[];
+}
 
 export interface MaterialRow {
   id: number;
@@ -49,6 +56,7 @@ export function MaterialScreen({
   scope,
   canAgregar,
   breadcrumb,
+  grants,
 }: {
   rows: MaterialRow[];
   stats: Stats;
@@ -57,6 +65,7 @@ export function MaterialScreen({
   scope: ResolvedScope;
   canAgregar: boolean;
   breadcrumb: string;
+  grants?: GrantsPanelData;
 }) {
   const router = useRouter();
   const [agregarOpen, setAgregarOpen] = useState(false);
@@ -91,6 +100,8 @@ export function MaterialScreen({
           </button>
         )}
       </div>
+
+      {grants && <GrantsPanel data={grants} />}
 
       <ScopeToolbar scope={scope} />
 
@@ -196,6 +207,73 @@ export function MaterialScreen({
       )}
       {reportarTarget && <ReportarAveriaDialog target={reportarTarget} onClose={() => setReportarTarget(null)} />}
     </>
+  );
+}
+
+function GrantsPanel({ data }: { data: GrantsPanelData }) {
+  const router = useRouter();
+  const [personaId, setPersonaId] = useState("");
+  const [role, setRole] = useState(data.roleOptions[0]?.value ?? "");
+  const [pending, setPending] = useState(false);
+
+  async function onConceder() {
+    if (!personaId || !role) return;
+    setPending(true);
+    const fd = new FormData();
+    fd.set("personaId", personaId);
+    fd.set("role", role);
+    await concederAccesoAction(fd);
+    setPersonaId("");
+    setPending(false);
+    router.refresh();
+  }
+
+  async function onRevocar(id: number) {
+    setPending(true);
+    await revocarAccesoAction(id);
+    setPending(false);
+    router.refresh();
+  }
+
+  return (
+    <div className="card blueprint" style={{ padding: "var(--space-4)", gap: "var(--space-2)" }}>
+      <i className="corner tl" /><i className="corner tr" /><i className="corner bl" /><i className="corner br" />
+      <div className="card-kicker">Conceder acceso a otra vista (solo jefe de unidad puede hacerlo)</div>
+      <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div className="field" style={{ maxWidth: 260, margin: 0 }}>
+          <label>Persona</label>
+          <select className="input" value={personaId} onChange={(e) => setPersonaId(e.target.value)}>
+            <option value="">Selecciona persona...</option>
+            {data.personaOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field" style={{ maxWidth: 200, margin: 0 }}>
+          <label>Vista</label>
+          <select className="input" value={role} onChange={(e) => setRole(e.target.value)}>
+            {data.roleOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+        <button className="btn btn-secondary" disabled={pending || !personaId} onClick={onConceder}>
+          Conceder
+        </button>
+      </div>
+      {data.grantsList.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: "var(--space-2)" }}>
+          {data.grantsList.map((g) => (
+            <div key={g.personaId} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+              <span>{g.nombre} → {g.roleLabel}</span>
+              <button className="btn btn-ghost" disabled={pending} onClick={() => onRevocar(g.personaId)}>
+                Revocar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

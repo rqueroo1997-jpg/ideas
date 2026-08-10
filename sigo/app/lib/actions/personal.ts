@@ -6,8 +6,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPersona } from "@/lib/auth";
 import { canGestionarPersonal, canIncorporarPersonal } from "@/lib/rbac";
-import { SUBSECCIONES } from "@/lib/catalog";
+import { SUBSECCIONES, GRANTABLE_ROLES } from "@/lib/catalog";
 import type { ActionState } from "@/lib/actions/material";
+import type { Role } from "@/app/generated/prisma/enums";
 
 const ok: ActionState = { error: null };
 
@@ -81,4 +82,39 @@ export async function toggleCuentaAction(personaId: number): Promise<void> {
 
   await prisma.persona.update({ where: { id: personaId }, data: { activo: !target.activo } });
   revalidatePath("/personal");
+}
+
+const concederSchema = z.object({
+  personaId: z.coerce.number().int().positive(),
+  role: z.enum(GRANTABLE_ROLES),
+});
+
+export async function concederAccesoAction(formData: FormData): Promise<void> {
+  const actor = await getCurrentPersona();
+  if (!actor || !canGestionarPersonal(actor.homeRole)) return;
+
+  const parsed = concederSchema.safeParse({
+    personaId: formData.get("personaId"),
+    role: formData.get("role"),
+  });
+  if (!parsed.success || parsed.data.personaId === actor.id) return;
+  const { personaId, role } = parsed.data;
+
+  const target = await prisma.persona.findUnique({ where: { id: personaId } });
+  if (!target) return;
+
+  await prisma.accessGrant.upsert({
+    where: { personaId },
+    create: { personaId, grantedRole: role as Role, grantedById: actor.id },
+    update: { grantedRole: role as Role, grantedById: actor.id },
+  });
+  revalidatePath("/material");
+}
+
+export async function revocarAccesoAction(personaId: number): Promise<void> {
+  const actor = await getCurrentPersona();
+  if (!actor || !canGestionarPersonal(actor.homeRole)) return;
+
+  await prisma.accessGrant.deleteMany({ where: { personaId } });
+  revalidatePath("/material");
 }

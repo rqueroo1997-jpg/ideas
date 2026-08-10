@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getViewerContext } from "@/lib/auth";
-import { resolveScope, canAgregarMaterial, canReportarAveria, canValidarMaterialPendiente } from "@/lib/rbac";
-import { ESTADO_MATERIAL_LABEL, ESTADO_MATERIAL_TAG, breadcrumbText, seccionLabel } from "@/lib/catalog";
-import { MaterialScreen, type MaterialRow } from "./material-screen";
+import { resolveScope, canAgregarMaterial, canReportarAveria, canValidarMaterialPendiente, canGestionarPersonal } from "@/lib/rbac";
+import { ESTADO_MATERIAL_LABEL, ESTADO_MATERIAL_TAG, breadcrumbText, seccionLabel, ROLE_HOME, GRANTABLE_ROLES } from "@/lib/catalog";
+import { MaterialScreen, type MaterialRow, type GrantsPanelData } from "./material-screen";
 
 export default async function MaterialPage({
   searchParams,
@@ -65,6 +65,19 @@ export default async function MaterialPage({
       : []),
   ];
 
+  let grants: GrantsPanelData | undefined;
+  if (canGestionarPersonal(activeRole)) {
+    const [personas, accessGrants] = await Promise.all([
+      prisma.persona.findMany({ where: { id: { not: persona.id } }, select: { id: true, nombre: true, homeRole: true }, orderBy: { nombre: "asc" } }),
+      prisma.accessGrant.findMany({ include: { persona: { select: { nombre: true } } } }),
+    ]);
+    grants = {
+      personaOptions: personas.map((p) => ({ value: p.id, label: `${p.nombre} (${ROLE_HOME[p.homeRole].label})` })),
+      roleOptions: GRANTABLE_ROLES.map((r) => ({ value: r, label: ROLE_HOME[r].label })),
+      grantsList: accessGrants.map((g) => ({ personaId: g.personaId, nombre: g.persona.nombre, roleLabel: ROLE_HOME[g.grantedRole].label })),
+    };
+  }
+
   return (
     <MaterialScreen
       rows={rows}
@@ -74,6 +87,7 @@ export default async function MaterialPage({
       scope={scope}
       canAgregar={canAgregarMaterial(activeRole)}
       breadcrumb={breadcrumbText(scope.section, scope.sub)}
+      grants={grants}
     />
   );
 }

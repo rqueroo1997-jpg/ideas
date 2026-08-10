@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getViewerContext } from "@/lib/auth";
 import { ROLE_HOME } from "@/lib/catalog";
+import { countNotificaciones } from "@/lib/notifications";
 import { AppShell } from "./app-shell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -8,13 +9,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!viewer) redirect("/login");
 
   const { persona, activeRole, allowedRoles } = viewer;
+  const notificacionesCount = await countNotificaciones(persona.id);
 
   return (
     <AppShell
       personaNombre={persona.nombre}
       activeRole={activeRole}
       roleOptions={allowedRoles.map((r) => ({ value: r, label: ROLE_HOME[r].label }))}
-      notificacionesCount={0}
+      notificacionesCount={notificacionesCount}
     >
       {children}
     </AppShell>

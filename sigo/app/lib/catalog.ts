@@ -42,6 +42,9 @@ export const ROLE_HOME: Record<
   admin: { label: "Administrador", section: null, sub: null },
 };
 
+/** Role-views a jefe_unidad/admin can grant — excludes the two roles that already bypass every restriction. */
+export const GRANTABLE_ROLES = ["jefe_seccion", "suboficial", "cabo_acceso", "cabo", "soldado"] as const;
+
 /** Roles above this one bypass section/subsection scoping entirely. */
 export const UNSCOPED_ROLES: Role[] = ["jefe_unidad", "admin"];
 
