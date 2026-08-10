@@ -15,8 +15,20 @@ export const isJefeSeccion = (role: Role) => role === "jefe_seccion";
 
 /** Whether this role's section filter is locked to the persona's own section. */
 export const isSectionLocked = (role: Role) => role !== "jefe_unidad" && !isAdmin(role);
-/** Whether this role's sub-section filter is locked to the persona's own sub-section. */
-export const isSubLocked = (role: Role) => isSectionLocked(role) && role !== "jefe_seccion";
+/**
+ * Whether this role's sub-section filter is locked to the persona's own
+ * sub-section. Per the design handoff's README role table, `suboficial` and
+ * `jefe_seccion` are section-locked only (they validate/manage across their
+ * whole section, including every sub-section in it) — only cabo/cabo_acceso/
+ * soldado are locked down to their own sub-section too. The prototype's own
+ * state-derivation formula (`sectionLocked && role !== 'jefe_seccion'`)
+ * disagrees and would also lock suboficial to one sub-section, which
+ * contradicts the README and would leave a suboficial unable to validate
+ * material reported anywhere outside their own sub-section — so this
+ * follows the README's explicit table over that formula.
+ */
+export const isSubLocked = (role: Role) =>
+  role === "cabo" || role === "cabo_acceso" || role === "soldado";
 
 export const canAgregarMaterial = (role: Role) =>
   role === "soldado" || role === "cabo" || role === "cabo_acceso" || isAdmin(role);

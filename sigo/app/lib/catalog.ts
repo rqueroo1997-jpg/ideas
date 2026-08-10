@@ -157,6 +157,13 @@ export function seccionLabel(seccion: string, sub?: string | null): string {
   return sub ? `${seccion} / ${sub}` : seccion;
 }
 
+/** "Batallón CG IX › Sección[ › Sub]" — ported from renderVals()'s breadcrumbParts (~L1603-1606). */
+export function breadcrumbText(section: string | null, sub: string | null): string {
+  const parts = ["Batallón CG IX", section ?? "Todas las secciones"];
+  if (sub) parts.push(sub);
+  return parts.join(" › ");
+}
+
 export function slugUsuario(nombre: string): string {
   return nombre
     .toLowerCase()
