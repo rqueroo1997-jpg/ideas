@@ -181,7 +181,6 @@ model PermisoRequest {
   justificacion      String?
   justificanteFileId Int?
   justificanteFile   ArchivoAdjunto? @relation(fields: [justificanteFileId], references: [id])
-  cancelable         Boolean        @default(true)
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 

@@ -79,3 +79,34 @@ export function resolveScope(
 export function subOptionsFor(): readonly string[] {
   return SUBSECCIONES;
 }
+
+export const canGestionarPersonal = (role: Role) => isJefeUnidad(role);
+export const canIncorporarPersonal = isJefeSeccion;
+
+/** Approves pendiente_instancia1 → pendiente_unidad. */
+export const canActInstancia1 = (role: Role) => role === "suboficial" || isJefeSeccion(role) || isAdmin(role);
+/** Approves pendiente_unidad → aprobado. */
+export const canActInstancia2 = isJefeUnidad;
+
+/**
+ * Who can see a persona's Permisos requests, ported from renderVals()'s
+ * permisosVisibles (~L1698-1706) — with the same README-vs-code correction
+ * as isSubLocked: suboficial sees their whole section, not just their own
+ * sub-section. Also drops the prototype's `['S1','S2','S3','S4'].indexOf(
+ * loggedPerson.seccion) !== -1` branch, which let *any* role (including
+ * soldado) see every permiso unit-wide just for being in a staff section —
+ * that directly contradicts the README's "Soldado sees/manages only their
+ * own requests."
+ */
+export type PermisoScope =
+  | { mode: "all" }
+  | { mode: "seccion"; seccion: string }
+  | { mode: "own"; personaId: number };
+
+export function permisoScopeFor(persona: PersonaWithGrant, activeRole: Role): PermisoScope {
+  if (isJefeUnidad(activeRole)) return { mode: "all" };
+  if (isJefeSeccion(activeRole) || activeRole === "suboficial") {
+    return { mode: "seccion", seccion: persona.seccion };
+  }
+  return { mode: "own", personaId: persona.id };
+}

@@ -241,7 +241,6 @@ async function main() {
         hasta: parseDate(p.hasta)!,
         dias: p.dias,
         estado: PERMISO_ESTADO_MAP[p.estado],
-        cancelable: p.estado === "pendiente_instancia1" || p.estado === "pendiente_unidad",
       },
     });
   }
