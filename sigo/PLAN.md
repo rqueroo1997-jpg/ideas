@@ -121,8 +121,14 @@ Each phase ends in a working, deployable increment — not a stub.
   block (README open item #2) is enforced on every request via `getCurrentPersona()`, not just
   at login. Verified with a full browser run: primer-acceso → login → role-scoped breadcrumb →
   nav → logout → wrong-password rejection, plus a clean `next build`.
-- **Phase 1 — Material + Mantenimiento.** Dashboard stats/donut, add/edit/delete-own-pending
-  material, Suboficial validation, the 4-stage repair ticket pipeline + history log.
+- **Phase 1 — Material + Mantenimiento. ✅ Done** (see `app/app/(app)/material/`,
+  `.../mantenimiento/`). Dashboard stats/donut, section/sub toolbar, add/edit/delete-own-
+  pending material, Suboficial validation, the 4-stage repair ticket pipeline with historial
+  log entries per transition. Fixed two role-scope bugs the prototype's own state-derivation
+  formula would have had (suboficial locked to one sub-section, and no section filter at all
+  on maintenance tickets for any non-soldado role) — see `lib/rbac.ts` for the reasoning.
+  Verified across three roles in a browser (soldado add + report avería, suboficial validate
+  and drive a ticket through all four stages, confirmed section-scoping) plus a clean build.
 - **Phase 2 — Personal + Permisos.** Roster CRUD, incorporate-pending-personnel flow,
   account activation toggle; leave calendar, two-stage approval, extraordinario cap,
   justificante upload.
