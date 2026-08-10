@@ -160,11 +160,24 @@ Each phase ends in a working, deployable increment — not a stub.
   friendly error since no real `ANTHROPIC_API_KEY` is configured in this sandbox — see open
   item #2) plus a clean build. Access grants UI and a real notifications count are deferred to
   Phase 5 hardening, since they're small and independent of the AI work this phase was about.
-- **Phase 5 — Hardening.** Responsive pass against the 880px breakpoint, role-matrix test
-  pass (every screen × every role, checking the README's visibility table), seed/import path
-  for real personnel data to replace the prototype's seed data, access grants UI (jefe_unidad
-  → other roles), and a real notifications count backed by a query instead of a derived stub
-  (both carried over from Phase 4's scope).
+- **Phase 5 — Hardening. ✅ Done.** Confirmed the 880px responsive breakpoint built in Phase 0
+  (sidebar → tab bar, 4→2 stat columns, 92vw dialogs, stacked toolbars) still holds with no
+  horizontal overflow on any screen, including the new Papeleo screen — checked at 375px across
+  all six screens in a browser. Ran a role-matrix pass across jefe_unidad, jefe_seccion,
+  suboficial, cabo_acceso, cabo, and soldado test accounts (cabo_acceso/cabo didn't have test
+  logins yet, created via primer acceso) verifying each rbac.ts predicate's real effect in the
+  browser (cuadrantes edit, material add, papeleo upload, grants panel, personal credential
+  renewal) — all matched the README's table with no gaps. Built the access grants UI (`+
+  Conceder acceso` panel on the Material dashboard, jefe_unidad/admin-only, ported from the
+  prototype's `concederAcceso`/`revocarAcceso`/`grantsList` state, backed by the `AccessGrant`
+  model) and verified the full grant→role-switch→revoke cycle end-to-end, including that a
+  granted `cabo_acceso` view correctly unlocks cuadrantes editing for the grantee. Replaced the
+  `notificacionesCount={0}` stub in `app/(app)/layout.tsx` with `lib/notifications.ts`, a real
+  query porting the prototype's exact formula (own permiso requests just resolved + closed
+  maintenance cases on material the viewer added). Added `prisma/import-roster.ts` (`npm run
+  db:import-roster -- path.csv`), an idempotent CSV importer that upserts personas by `nombre`
+  without touching login/account fields — tested against create, update, and validation-error
+  paths against the dev database.
 
 Proceeding phase-by-phase with a checkpoint after each, per your "full build, in phases"
 answer — I'll report back at the end of each phase rather than going silent for the whole
