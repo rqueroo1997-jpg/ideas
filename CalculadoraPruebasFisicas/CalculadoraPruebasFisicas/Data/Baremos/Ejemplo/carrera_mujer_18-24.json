@@ -1,0 +1,31 @@
+{
+  "testId": "carrera",
+  "sex": "mujer",
+  "ageRangeId": "18-24",
+  "ageMin": 18,
+  "ageMax": 24,
+  "category": null,
+  "passingScore": 5,
+  "ranges": [
+    { "minimum": 0,   "maximum": 720,   "score": 10 },
+    { "minimum": 721, "maximum": 750,   "score": 9 },
+    { "minimum": 751, "maximum": 780,   "score": 8 },
+    { "minimum": 781, "maximum": 810,   "score": 7 },
+    { "minimum": 811, "maximum": 840,   "score": 6 },
+    { "minimum": 841, "maximum": 870,   "score": 5 },
+    { "minimum": 871, "maximum": 900,   "score": 4 },
+    { "minimum": 901, "maximum": 930,   "score": 3 },
+    { "minimum": 931, "maximum": 960,   "score": 2 },
+    { "minimum": 961, "maximum": 990,   "score": 1 },
+    { "minimum": 991, "maximum": 999999, "score": 0 }
+  ],
+  "source": {
+    "name": "EJEMPLO - Datos ficticios para desarrollo (NO OFICIAL)",
+    "callNumber": null,
+    "publishedDate": null,
+    "reference": "Generado solo para poder probar la app. Debe sustituirse por la tabla oficial real.",
+    "lastUpdated": "2026-08-13T00:00:00Z",
+    "verified": false,
+    "origin": "training"
+  }
+}

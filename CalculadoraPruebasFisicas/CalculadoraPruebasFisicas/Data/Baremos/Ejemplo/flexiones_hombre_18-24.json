@@ -1,0 +1,31 @@
+{
+  "testId": "flexiones",
+  "sex": "hombre",
+  "ageRangeId": "18-24",
+  "ageMin": 18,
+  "ageMax": 24,
+  "category": null,
+  "passingScore": 5,
+  "ranges": [
+    { "minimum": 0,  "maximum": 9,    "score": 0 },
+    { "minimum": 10, "maximum": 14,   "score": 1 },
+    { "minimum": 15, "maximum": 19,   "score": 2 },
+    { "minimum": 20, "maximum": 24,   "score": 3 },
+    { "minimum": 25, "maximum": 29,   "score": 4 },
+    { "minimum": 30, "maximum": 34,   "score": 5 },
+    { "minimum": 35, "maximum": 39,   "score": 6 },
+    { "minimum": 40, "maximum": 44,   "score": 7 },
+    { "minimum": 45, "maximum": 49,   "score": 8 },
+    { "minimum": 50, "maximum": 54,   "score": 9 },
+    { "minimum": 55, "maximum": 9999, "score": 10 }
+  ],
+  "source": {
+    "name": "EJEMPLO - Datos ficticios para desarrollo (NO OFICIAL)",
+    "callNumber": null,
+    "publishedDate": null,
+    "reference": "Generado solo para poder probar la app. Debe sustituirse por la tabla oficial real.",
+    "lastUpdated": "2026-08-13T00:00:00Z",
+    "verified": false,
+    "origin": "training"
+  }
+}

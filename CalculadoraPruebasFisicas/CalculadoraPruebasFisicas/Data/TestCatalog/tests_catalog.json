@@ -1,0 +1,82 @@
+[
+  {
+    "id": "carrera",
+    "name": "Carrera",
+    "icon": "figure.run",
+    "measurementKind": "time",
+    "unitLabel": "min:seg,centésimas",
+    "lowerIsBetter": true,
+    "order": 1,
+    "helpText": "Introduce el tiempo empleado en completar la carrera."
+  },
+  {
+    "id": "velocidad",
+    "name": "Velocidad",
+    "icon": "bolt.fill",
+    "measurementKind": "time",
+    "unitLabel": "seg,centésimas",
+    "lowerIsBetter": true,
+    "order": 2,
+    "helpText": "Introduce el tiempo del sprint (p.ej. 50-60 m lisos)."
+  },
+  {
+    "id": "resistencia",
+    "name": "Resistencia",
+    "icon": "figure.run.circle",
+    "measurementKind": "time",
+    "unitLabel": "min:seg",
+    "lowerIsBetter": true,
+    "order": 3,
+    "helpText": "Introduce el tiempo de la prueba de resistencia (p.ej. Course Navette o carrera larga)."
+  },
+  {
+    "id": "fuerza",
+    "name": "Fuerza",
+    "icon": "dumbbell.fill",
+    "measurementKind": "repetitions",
+    "unitLabel": "repeticiones",
+    "lowerIsBetter": false,
+    "order": 4,
+    "helpText": "Introduce el número de repeticiones realizadas (p.ej. dominadas)."
+  },
+  {
+    "id": "abdominales",
+    "name": "Abdominales",
+    "icon": "figure.core.training",
+    "measurementKind": "repetitions",
+    "unitLabel": "repeticiones",
+    "lowerIsBetter": false,
+    "order": 5,
+    "helpText": "Introduce el número de abdominales realizados en el tiempo establecido."
+  },
+  {
+    "id": "flexiones",
+    "name": "Flexiones",
+    "icon": "figure.strengthtraining.traditional",
+    "measurementKind": "repetitions",
+    "unitLabel": "repeticiones",
+    "lowerIsBetter": false,
+    "order": 6,
+    "helpText": "Introduce el número de flexiones realizadas en el tiempo establecido."
+  },
+  {
+    "id": "salto",
+    "name": "Salto",
+    "icon": "figure.jumprope",
+    "measurementKind": "distanceMeters",
+    "unitLabel": "metros",
+    "lowerIsBetter": false,
+    "order": 7,
+    "helpText": "Introduce la distancia del salto (p.ej. salto de longitud sin impulso)."
+  },
+  {
+    "id": "natacion",
+    "name": "Natación",
+    "icon": "figure.pool.swim",
+    "measurementKind": "time",
+    "unitLabel": "min:seg",
+    "lowerIsBetter": true,
+    "order": 8,
+    "helpText": "Introduce el tiempo empleado en completar la distancia de natación."
+  }
+]
